@@ -4,6 +4,11 @@
 
 **İTÜ · Uçak ve Uzay Mühendisliği · Güz 2026**
 
+Dilan Gelturan -
+Emirhan Oskay -
+Emircan Sürücü -
+Berat Alku
+
 ![MATLAB](https://img.shields.io/badge/MATLAB-R2024b-orange?logo=mathworks)
 ![Simulink](https://img.shields.io/badge/Simulink-Aerospace%20Blockset-blue)
 ![License](https://img.shields.io/badge/Lisans-MIT-green)
