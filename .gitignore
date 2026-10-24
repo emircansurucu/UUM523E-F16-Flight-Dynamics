@@ -2,3 +2,6 @@
 *.slxc
 slprj/
 .DS_Store
+*.slx.original
+*.autosave
+*.slx.r20*
