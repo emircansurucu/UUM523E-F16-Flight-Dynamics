@@ -36,8 +36,8 @@ gantt
     dateFormat YYYY-MM-DD
     axisFormat %d %b
     section Ödevler
-    HW-1           :2026-10-12, 2026-10-26
-    HW-2           :2026-10-26, 2026-11-09
+    HW-1           :2026-10-12, 2026-10-30
+    HW-2           :2026-10-30, 2026-11-09
     section Projeler
     Ara dönem      :2026-11-09, 2026-11-23
     Final konuları :2026-11-30, 2026-12-28
@@ -46,8 +46,8 @@ gantt
 | Aşama | Tarih | Yapılacaklar | Durum |
 |---|---|---|---|
 | **0 · Hazırlık** | Ekim başı | • Başlangıç modelini anlamak<br/>• MATLAB'da çalıştırıp temel çıktıları görmek<br/>• Aerodinamik verinin bütünlüğünü kontrol etmek | 🟡 Devam ediyor |
-| **HW-1** | 12 Eki → 26 Eki | • Modelin yapısını ve varsayımlarını açıklamak<br/>• Açık çevrim benzetimleri<br/>• Bağımsız bir referansla (Julia çözümü) sayısal karşılaştırma<br/>• Eksen, birim ve işaret kontrolleri | ⬜ |
-| **HW-2** | 26 Eki → 9 Kas | • Kendi trim formülasyonumuz<br/>• Trimin residual, fiziksel sınır ve benzetimle doğrulanması<br/>• Doğrusallaştırma ve çapraz kontrol<br/>• Doğrusal ve doğrusal olmayan yanıtların karşılaştırılması | ⬜ |
+| **HW-1** | 12 Eki → 30 Eki | • Aerospace Blockset kullanmadan kendi Simulink tesis modelimiz (6 alt sistem)<br/>• Aerodinamik doğrulama (Tablo 1, 10 durum) ve itki doğrulaması (Tablo 2, 5 durum)<br/>• $C_L$, $C_D$ ve $C_{m,t}$, $C_{m_\alpha}$ grafikleri<br/>• Eksen, birim ve işaret kontrolleri | 🟡 |
+| **HW-2** | 30 Eki → 9 Kas | • Kendi trim formülasyonumuz<br/>• Trimin residual, fiziksel sınır ve benzetimle doğrulanması<br/>• Doğrusallaştırma ve çapraz kontrol<br/>• Doğrusal ve doğrusal olmayan yanıtların karşılaştırılması | ⬜ |
 | **Ara dönem** | → 23 Kas | • Statik kararlılık ile doğrusal model karşılaştırması<br/>• Beş dinamik mod: kısa periyot, fugoid, Hollanda yuvarlanması, yuvarlanma, spiral<br/>• Sunum ve rapor | ⬜ |
 | **Final** | Hf. 9–13, sunum final haftası | • Konu seçimi<br/>• Seçilen ileri konunun uygulanması<br/>• Sunum ve rapor | ⬜ |
 
@@ -65,9 +65,9 @@ Ders belgelerinden (katalog formu, *Course Mindset*, final proje yönergeleri) �
 
 **Ödevler (HW-1, HW-2)**
 - Her biri 10 puan, 4 kişilik grup ödevi.
-- HW-1: F-16 modelleme ve benzetim (MATLAB/Simulink).
+- HW-1 (30 Ekim): Aerodinamik, itki, kütle ve atalet, atmosfer, eyleyiciler ve hareket denklemleri alt sistemlerinden oluşan F-16 tesis modeli. **Aerospace Blockset içeren model kabul edilmez.** Teslim: ≤ 8 sayfa rapor, kod, readme, R2023a modelleri ve `HW1_Group<No>.mat` (`AeroResults` 10×12, `ThrustResults` 5×1).
 - HW-2: HW-1 modelinin trim edilmesi ve doğrusallaştırılması.
-- Ayrıntılı ödev yönergeleri geldiğinde eklenecek.
+- Geç teslim: günlük −10 puan, en fazla 3 gün.
 
 **Ara dönem projesi** (proje 10 + sunum 10 + rapor 10)
 - HW-1 ve HW-2 üzerine kurulur.

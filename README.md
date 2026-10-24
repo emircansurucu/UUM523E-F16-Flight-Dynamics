@@ -10,21 +10,22 @@ Emircan Sürücü -
 Berat Alku
 
 ![MATLAB](https://img.shields.io/badge/MATLAB-R2024b-orange?logo=mathworks)
-![Simulink](https://img.shields.io/badge/Simulink-Aerospace%20Blockset-blue)
+![Simulink](https://img.shields.io/badge/Simulink-R2023a%20format-blue)
 ![License](https://img.shields.io/badge/Lisans-MIT-green)
 
 </div>
 
 Bu depo, UUM523E dersi boyunca yapılacak ödev ve projelerin çalışma alanıdır. Ders tek bir yol üzerine kuruludur: grup 3. haftada oluşur ve aynı grup HW-1, HW-2, ara dönem projesi ve final projesini birlikte yürütür. Her aşama, grubun bir önceki aşamadaki çalışmasının üzerine inşa edilir.
 
-Ders içeriği, yol planı ve teslim beklentileri için: **[PROJECT.md](PROJECT.md)**
+Ders içeriği, yol planı ve teslim beklentileri için: **[PROJECT.md](PROJECT.md)**  
+Modelde kullanılan denklemler ve sabitler için: **[FORMULLER.md](FORMULLER.md)**
 
 ## Ders akışı
 
 ```mermaid
 flowchart LR
     G["<b>Grup kurulumu</b><br/>4 kişilik gruplar<br/>12 Ekim"]
-    H1["<b>HW-1</b><br/>F-16 modelleme<br/>ve benzetim<br/><i>10 puan · 26 Ekim</i>"]
+    H1["<b>HW-1</b><br/>F-16 modelleme<br/>ve benzetim<br/><i>10 puan · 30 Ekim</i>"]
     H2["<b>HW-2</b><br/>Trim ve<br/>doğrusallaştırma<br/><i>10 puan · 9 Kasım</i>"]
     M["<b>Ara dönem projesi</b><br/>Statik kararlılık ↔ doğrusal model<br/>Dinamik modlar<br/><i>30 puan · 23 Kasım</i>"]
     F["<b>Final projesi</b><br/>Bir ileri konu seçilir<br/><i>50 puan · final haftası</i>"]
@@ -45,16 +46,16 @@ Final projesinde her grup beş konudan birini seçer; bir konuyu en fazla iki gr
 ## Gereksinimler
 
 - MATLAB **R2024b**
-- Simulink ve Aerospace Blockset
+- Simulink (modeller **R2023a** formatında kaydedilir)
+- Aerospace Blockset yalnızca doğrulama için; teslim edilen modelde kullanılamaz
 - Simulink Control Design (trim ve doğrusallaştırma)
 - Optimization Toolbox
 
 ## Başlangıç modeli hakkında notlar
 
-Çalışmalara, Raktim Bhattacharya'nın açık kaynaklı doğrusal olmayan F-16 MATLAB/Simulink modeli (NASA TP-1538 aerodinamik verisi) ile başlanıyor. Bu model yalnızca bir başlangıç noktası; ders ilerledikçe değiştirilecek ve kendi çalışmalarımızla genişletilecek. İlk incelemede fark edilen ve doğrulanması gereken noktalar:
+Çalışmalara, Raktim Bhattacharya'nın açık kaynaklı doğrusal olmayan F-16 MATLAB/Simulink modeli (NASA TP-1538 aerodinamik verisi) ile başlandı; dosyaları [`reference/bhattacharya-f16/`](reference/bhattacharya-f16/) altında duruyor. Bu model yalnızca bir başlangıç noktası; ders ilerledikçe değiştirilecek ve kendi çalışmalarımızla genişletilecek. İlk incelemede fark edilen ve doğrulanması gereken noktalar:
 
 - Model pratikte **α ≤ 45°** aralığında çalışıyor; bu sınır aşılırsa hesap bozuluyor.
-- `F16_2022a.mdl` ve `F16_2023a.mdl` ana modelin eski hâli; `F16.slx` kullanılmalı.
 - Eyleyici dinamiği, yüzey sınırları ve motor dinamiği modelde yok.
 - Eylemsizlik çarpımı (Ixz) işareti ders kitabındaki kurala göre ters olabilir.
 - Hazır trim betiği (`TrimF16.m`) kontrol edilmeden kullanılmamalı.
@@ -77,4 +78,4 @@ Final projesinde her grup beş konudan birini seçer; bir konuyu en fazla iki gr
 ## Atıf ve lisans
 
 - **Başlangıç modeli:** © 2023 Raktim Bhattacharya, Texas A&M University — [MIT Lisansı](LICENSE). Orijinal dosyalardaki yazar bilgileri korunmuştur.
-- **Ders kapsamındaki çalışmalar:** Emircan Sürücü, İTÜ — UUM523E, Güz 2026.
+- **Ders kapsamındaki çalışmalar:** Dilan Gelturan, Emirhan Oskay, Emircan Sürücü, Berat Alku — İTÜ UUM523E, Güz 2026.
