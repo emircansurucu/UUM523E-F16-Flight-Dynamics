@@ -1,307 +1,478 @@
-<div align="center">
+# HW-1: F-16 Plant Modeli ve Aerodinamik Katsayılar
 
-# HW-1 · F-16 Plant Model and Aerodynamic Coefficients
+UUM523E Advanced Flight Dynamics, İTÜ, Güz 2026 — Grup 2
+Dilan Gelturan, Emirhan Oskay, Emircan Sürücü, Berat Alku
 
-**UUM523E Advanced Flight Dynamics · İTÜ · Güz 2026 · Grup 2**
+## Genel tanım
 
-Dilan Gelturan · Emirhan Oskay · Emircan Sürücü · Berat Alku
+Bu çalışmada F-16'nın doğrusal olmayan, 6 serbestlik dereceli (6-DOF) plant modeli Simulink'te kuruldu. Model, ödevin istediği altı alt sistemden oluşuyor: Aerodynamics, Propulsion, Atmosphere, Mass & Inertia, Actuators ve Equations of Motion. Bunlara ek olarak kök seviyede hücum kenarı flapı tarifesi (LEF schedule) ve toplam kuvvet toplayıcısı bulunuyor. Modelin hiçbir yerinde Aerospace Blockset bloğu kullanılmadı; her alt sistem temel Simulink bloklarıyla (lookup table, gain, sum, product, integrator, saturation, switch) kuruldu.
 
-![MATLAB](https://img.shields.io/badge/MATLAB-Simulink-orange?logo=mathworks)
-![Aerospace Blockset](https://img.shields.io/badge/Aerospace%20Blockset-kullan%C4%B1lmad%C4%B1-success)
-![Veri](https://img.shields.io/badge/Veri-NASA%20TP--1538-blue)
+Aerodinamik model ve motor modeli NASA TP-1538'e (Nguyen vd., 1979) dayanıyor. Standart atmosfer modeli Stevens, Lewis ve Johnson'ın *Aircraft Control and Simulation* kitabının Ek A.6'sından alındı ve İngiliz birim sisteminden SI'ya çevrildi. Aerodinamik ve motor verisi olarak dersin verdiği `f16_AerodynamicData.mat` ve `f16_EngineData.mat` dosyaları, kendi breakpoint'leriyle birlikte kullanıldı. Modelin içindeki bütün hesaplar SI birimlerinde yapılıyor; veri tablolarının İngiliz birimindeki girdi/çıktıları (irtifa ft, itki lbf) blokların içinde dönüştürülüyor.
 
-</div>
+Ödevin sonuçları (Tablo 1, Tablo 2 ve Problem 2) modelin alt sistemleri tek başına çalıştırılarak elde edildi. Bu işi `run_HW1.m` scripti yapıyor ve ödevin istediği `HW1_Group2.mat` dosyasını ve Problem 2 grafiklerini üretiyor.
 
-F-16'nın doğrusal olmayan 6 serbestlik dereceli plant modeli, Aerospace Blockset kullanılmadan Simulink'te kuruldu. Aerodinamik model NASA TP-1538'e, atmosfer modeli Stevens–Lewis–Johnson Ek A.6'ya dayanıyor; atmosfer SI birimlerine çevrildi. Bu depo modeli, onu çalıştıran kodu ve ödevin istediği bütün sonuçları içeriyor.
+## Dosyalar
 
-## İçindekiler
-
-1. [Hızlı başlangıç](#1-hızlı-başlangıç)
-2. [Dosyalar](#2-dosyalar)
-3. [Model](#3-model)
-4. [Adım adım çalıştırma](#4-adım-adım-çalıştırma)
-5. [Sonuçlar](#5-sonuçlar)
-6. [Veri notları](#6-veri-notları)
-7. [Birimler ve kabuller](#7-birimler-ve-kabuller)
-
----
-
-## 1. Hızlı başlangıç
-
-MATLAB'da bu klasörü açıp tek komut çalıştırın:
-
-```matlab
-run_HW1
-```
-
-Birkaç saniye içinde şunlar üretilir:
-
-| Çıktı | İçerik |
+| Dosya / klasör | İçerik |
 |---|---|
-| Komut penceresi | Tablo 1 ve Tablo 2 sonuçları, Problem 2b kararlılık özeti |
-| `HW1_Group2.mat` | `AeroResults` (10×12) ve `ThrustResults` (5×1); başka değişken yok |
-| `figures/P2a_CL_CD.png` | Problem 2a: C<sub>L</sub> ve C<sub>D</sub> – α |
-| `figures/P2b_Cm.png` | Problem 2b: C<sub>m,t</sub> – α (9 β) |
-| `figures/P2b_Cm_alpha.png` | Problem 2b: C<sub>m,tα</sub> – α (9 β) |
+| `F16_6DOF.slx` | Simulink plant modeli. Kökte 6 alt sistem, LEF tarifesi ve toplam kuvvet bloğu var. Her bölümün denklemi modelin içinde, ilgili blokların yanında yazılı. |
+| `init_F16.m` | Modelin kullandığı bütün veri, sabit ve başlangıç koşullarını MATLAB çalışma alanına yükler. Model bu değişkenler olmadan çalışmaz. |
+| `run_HW1.m` | Ödevin bütün sonuçlarını üretir: Tablo 1, Tablo 2, sonuç dosyası ve Problem 2 grafikleri. |
+| `test_aero_table1.m` | Aerodynamics alt sistemini Tablo 1'in 10 durumunda çalıştırır ve sonuçları referans değerlerle karşılaştırır. |
+| `test_thrust_table2.m` | Propulsion alt sistemini Tablo 2'nin 5 durumunda çalıştırır ve sonuçları referans değerlerle karşılaştırır. |
+| `HW1_Group2.mat` | Sonuç dosyası. Yalnızca `AeroResults` (10×12) ve `ThrustResults` (5×1) değişkenlerini içerir. |
+| `figures/` | Problem 2 grafikleri: `P2a_CL_CD.png`, `P2b_Cm.png`, `P2b_Cm_alpha.png` |
+| `data/` | Dersin orijinal veri dosyaları. Hiç değiştirilmedi; gerekli düzeltmeler yalnızca bellekte yapılıyor. |
+| `Resources/` | NASA TP-1538 ve ilgili kaynak PDF'ler |
+| `reference/` | Karşılaştırma için kullanılan açık kaynaklı F-16 modeli (teslimin parçası değil) |
 
-**Gereksinimler:** MATLAB ve Simulink. Başka toolbox gerekmez; Aerospace Blockset gerekmez.
+## Çalıştırma
 
----
+Gereksinim: MATLAB ve Simulink. Başka bir toolbox gerekmiyor.
 
-## 2. Dosyalar
+1. MATLAB'da bu klasörü açın (Current Folder).
+2. Komut penceresine `run_HW1` yazın.
 
-| Dosya | Görevi |
-|---|---|
-| [`F16_6DOF.slx`](F16_6DOF.slx) | Simulink plant modeli (6 alt sistem) |
-| [`init_F16.m`](init_F16.m) | Bütün parametreleri ve veri tablolarını çalışma alanına yükler (SI) |
-| [`run_HW1.m`](run_HW1.m) | Ödevin bütün sonuçlarını üretir: Tablo 1, Tablo 2, `.mat` dosyası, Problem 2 grafikleri |
-| [`test_aero_table1.m`](test_aero_table1.m) | Aerodynamics alt sistemini Tablo 1'de bağımsız referansla karşılaştırır |
-| [`test_thrust_table2.m`](test_thrust_table2.m) | Propulsion alt sistemini Tablo 2'de bağımsız referansla karşılaştırır |
-| [`HW1_Group2.mat`](HW1_Group2.mat) | Sonuç dosyası |
-| [`figures/`](figures/) | Problem 2 grafikleri |
-| [`data/`](data/) | Dersin orijinal veri dosyaları (`f16_AerodynamicData.mat`, `f16_EngineData.mat`); hiç değiştirilmedi |
-| [`Resources/`](Resources/) | NASA TP-1538 ve ilgili kaynak PDF'ler |
+Script sırasıyla şunları yapar:
 
----
+1. `init_F16`'yı çalıştırır ve modeli yükler.
+2. Tablo 1'in uçuş koşulunu (0.4 Mach, 10 000 ft) atmosfer denklemleriyle hesaplar: V_T = 131.2776 m/s, q̄ = 7806.322 Pa.
+3. Tablo 1'in 10 durumunu hesaplayıp `AeroResults` olarak ekrana yazar.
+4. Tablo 2'nin 5 durumunu hesaplayıp `ThrustResults` olarak ekrana yazar.
+5. `HW1_Group2.mat` dosyasını kaydeder.
+6. Problem 2a için C_L ve C_D grafiklerini çizer.
+7. Problem 2b için C_m,t ve C_m,tα grafiklerini çizer ve her β için C_m,tα > 0 olan α aralıklarını ekrana yazar.
 
-## 3. Model
+Her α taraması tek bir simülasyonla yapıldığı için script kısa sürede biter. `F16_6DOF.slx` bu sırada değiştirilmez; hesaplar için açılan geçici test modelleri iş bitince kapatılır.
 
-### 3.1 Sinyal akışı
+Test scriptleri (`test_aero_table1`, `test_thrust_table2`) ayrı ayrı çalıştırılabilir. Her biri sonuçları referansla karşılaştırır ve en sonda "tüm durumlar uyumlu" ya da hangi hücrede fark olduğunu yazar.
 
-Kök seviyede alt sistemler birbirine Goto/From etiketleriyle bağlı. Alt sistemlerin içinde her bölümün denklemi, ilgili blokların yanında yazılı.
+Modelin tamamını çalıştırmak için önce `init_F16`, sonra `sim('F16_6DOF')` kullanılır. Kök seviyedeki beş giriş şunlardır:
 
-```mermaid
-flowchart LR
-    IN(["Girişler<br/>dh_cmd · da_cmd · dr_cmd<br/>dsb_cmd · throttle"])
-    LEF["LEF SCHEDULE"]
-    ACT["Actuators"]
-    AERO["Aerodynamics"]
-    PROP["Propulsion"]
-    MI["Mass & Inertia"]
-    SUM(("TOTAL<br/>FORCES"))
-    EOM["Equations of Motion"]
-    ATM["Atmosphere"]
-
-    IN -- "δ komutları" --> ACT
-    LEF -- "dlef_cmd" --> ACT
-    ACT -- "dh · da · dr · dlef · d_sb" --> AERO
-    IN -- "throttle" --> PROP
-    AERO -- "F_aero" --> SUM
-    PROP -- "F_thrust" --> SUM
-    MI -- "F_gravity" --> SUM
-    SUM -- "F_tot" --> EOM
-    AERO -- "M_aero" --> EOM
-    EOM -- "V_body · altitude" --> ATM
-    EOM -- "p · q · r" --> AERO
-    EOM -- "euler_angles" --> MI
-    EOM -- "altitude" --> PROP
-    ATM -- "α · β · TAS · q̄" --> AERO
-    ATM -- "α · q̄ · p_s" --> LEF
-    ATM -- "mach" --> PROP
-
-    style SUM fill:#e6f5ff,stroke:#1f6fa8
-    style IN fill:#f3f3f3,stroke:#888
-```
-
-### 3.2 Alt sistemler
-
-| Alt sistem | Ne hesaplar | Temel denklem | Kaynak |
-|---|---|---|---|
-| **Aerodynamics** | 6 katsayı alt sistemi (CX, CY, CZ, Cl, Cm, Cn) ve gövde eksenindeki kuvvet/moment | **F**<sub>A</sub> = q̄S [C<sub>X</sub> C<sub>Y</sub> C<sub>Z</sub>]ᵀ, **M**<sub>A</sub> = q̄S [b·C<sub>l</sub>  c̄·C<sub>m</sub>  b·C<sub>n</sub>]ᵀ | TP-1538 Ek B |
-| **Propulsion** | Gaz dişlisi, motor güç dinamiği, idle/mil/max ara değerlemesi | Ṗ<sub>3</sub> = (1/τ)(P<sub>2</sub> − P<sub>3</sub>); **F**<sub>T</sub> = [T 0 0]ᵀ | TP-1538 Şekil 66 |
-| **Atmosphere** | Standart atmosfer (SI) ve hava verisi | T* = 1 − kh, ρ = ρ<sub>0</sub>(T*)<sup>4.14</sup>, M = V<sub>T</sub>/√(γRT), q̄ = ½ρV<sub>T</sub>² | SLJ Ek A.6 |
-| **Mass & Inertia** | Gövde eksenindeki yerçekimi kuvveti | **F**<sub>G</sub> = W [−sinθ, sinφ cosθ, cosφ cosθ]ᵀ | — |
-| **Actuators** | 4 kanal birinci mertebe + konum ve hız sınırı; hava freni yalnız konum sınırı | δ̇ = sat<sub>δ̇max</sub>[(sat<sub>δ</sub>(δ<sub>c</sub>) − δ)/τ] | TP-1538 |
-| **Equations of Motion** | Öteleme/dönme dinamiği, Euler kinematiği, navigasyon | **V̇**<sub>B</sub> = **F**/m − ω×**V**<sub>B</sub>, ω̇ = I⁻¹[**M** − ω×(Iω + **h**<sub>e</sub>)] | — |
-| **LEF SCHEDULE** (kök alanı) | Hücum kenarı flapı komutu | δ<sub>lef</sub> = 1.38·(2s + 7.25)/(s + 7.25)·α − 9.05·q̄/p<sub>s</sub> + 1.45 | TP-1538 |
-
-Aerodinamik katsayıların tam açılımı (Λ = 1 − δ<sub>lef</sub>/25, q̂ = c̄q/2V<sub>T</sub>), örneğin yunuslama momenti:
-
-C<sub>m,t</sub> = C<sub>m</sub>(α,β,δ<sub>h</sub>)·η<sub>δh</sub>(δ<sub>h</sub>) + C<sub>Z,t</sub>(x<sub>cg,ref</sub> − x<sub>cg</sub>) + ΔC<sub>m,lef</sub>·Λ + q̂[C<sub>mq</sub>(α) + ΔC<sub>mq,lef</sub>(α)·Λ] + ΔC<sub>m</sub>(α) + ΔC<sub>m,ds</sub>(α,δ<sub>h</sub>) + ΔC<sub>m,sb</sub>(α)·δ<sub>sb</sub>/60
-
-Diğer beş katsayının denklemi, modelde ilgili alt sistemin (`Aerodynamics/CX` … `Cn`) içinde yazılı.
-
-### 3.3 Eyleyici sınırları
-
-| Kanal | Konum [deg] | Hız sınırı [deg/s] | τ [s] |
-|---|---|---|---|
-| δ<sub>h</sub> (stabilatör) | [−25, 25] | 60 | 0.0495 |
-| δ<sub>a</sub> (kanatçık) | [−21.5, 21.5] | 80 | 0.0495 |
-| δ<sub>r</sub> (dümen) | [−30, 30] | 120 | 0.0495 |
-| δ<sub>lef</sub> (hücum kenarı flapı) | [0, 25] | 25 | 0.136 |
-| δ<sub>sb</sub> (hava freni) | [0, 60] | — | — |
-
-### 3.4 Motor modeli
-
-Gaz kolu konumu δ<sub>th</sub> [%] önce güç komutuna çevrilir: δ<sub>th</sub> = %77'de military (P<sub>c</sub> = 50), %100'de maksimum güç (P<sub>c</sub> = 100). Gerçek güç seviyesi P<sub>3</sub>, bu komuta TP-1538'deki gecikme kurallarıyla yaklaşır:
-
-| Durum | P<sub>2</sub> (hedef) | 1/τ |
+| Giriş | Anlamı | Birim |
 |---|---|---|
-| P<sub>c</sub> ≥ 50, P<sub>3</sub> ≥ 50 | P<sub>c</sub> | 5 s⁻¹ |
-| P<sub>c</sub> ≥ 50, P<sub>3</sub> < 50 | 60 | R<sub>τ</sub>(P<sub>2</sub> − P<sub>3</sub>) |
-| P<sub>c</sub> < 50, P<sub>3</sub> ≥ 50 | 40 | 5 s⁻¹ |
-| P<sub>c</sub> < 50, P<sub>3</sub> < 50 | P<sub>c</sub> | R<sub>τ</sub>(P<sub>2</sub> − P<sub>3</sub>) |
+| `dh_cmd` | Stabilatör komutu | deg |
+| `da_cmd` | Kanatçık komutu | deg |
+| `dr_cmd` | Dümen komutu | deg |
+| `dsb_cmd` | Hava freni komutu | deg |
+| `throttle` | Gaz kolu konumu | % |
 
-R<sub>τ</sub>(ΔP) = 1.0 (ΔP ≤ 25), 1.9 − 0.036ΔP (25 < ΔP < 50), 0.1 (ΔP ≥ 50). İtki P<sub>3</sub> ile idle/mil/max tablolarından ara değerlenir; tablolar Mach ve irtifaya (ft) bağlıdır.
+Bu girişlere bir sinyal bağlanmazsa sıfır kabul edilir. Model trimli değildir: başlangıç koşulu 3048 m irtifada, gövde ekseninde 131.28 m/s ileri hızla düz uçuştur ve kumandalar sıfırdır. Trim ve doğrusallaştırma HW-2'nin konusu.
 
----
+## Model yapısı
 
-## 4. Adım adım çalıştırma
+Kök seviyede alt sistemler birbirine Goto/From etiketleriyle bağlı. Sinyal akışı şöyle:
 
-### Adım 1 — Parametreler: `init_F16`
+1. Kumanda komutları Actuators'a gider.
+2. Actuators'ın çıkışındaki gerçek yüzey açıları Aerodynamics'e gider.
+3. LEF tarifesi α ve q̄/p_s'den flap komutunu üretir. Bu komut da Actuators üzerinden Aerodynamics'e ulaşır.
+4. Aerodynamics, Propulsion ve Mass & Inertia'nın kuvvetleri toplanır.
+5. Toplam kuvvet ile aerodinamik moment Equations of Motion'a girer.
+6. Equations of Motion'ın çıkışları (hız, açısal hız, Euler açıları, irtifa) Atmosphere'a, Aerodynamics'e, Mass & Inertia'ya ve Propulsion'a geri döner.
+7. Atmosphere, hızdan ve irtifadan α, β, V_T, q̄, Mach ve p_s'yi hesaplayıp ilgili alt sistemlere dağıtır.
 
-`run_HW1` ve testler bu dosyayı kendileri çağırır; modeli elle açıp çalıştıracaksanız önce bunu çalıştırın.
+Kök seviyedeki etiketler:
 
-- `data/` içindeki ders verisini yükler: `AeroData`, `AeroBP`, `EngData`, `EngBP`.
-- Birim dönüşümleri: 1 ft = 0.3048 m, 1 lbf = 4.448222 N.
-- Atmosfer sabitlerini SI'ya çevirir (SLJ Ek A.6).
-- Kütle, geometri, atalet (TP-1538 Tablo I): W = 20 500 lbf, S = 300 ft², b = 30 ft, c̄ = 11.32 ft, x<sub>cg</sub> = x<sub>cg,ref</sub> = 0.35c̄, I<sub>xx</sub>, I<sub>yy</sub>, I<sub>zz</sub>, I<sub>xz</sub>, H<sub>e</sub> = 160 slug·ft²/s.
-- Başlangıç koşulları: V = 131.28 m/s, h = 3048 m; P<sub>3</sub>(0) = `P3_0`.
-- Gaz dişlisi (`thr_BP` → `P1_tab`) ve motor zaman sabiti tablosu (`dP_BP` → `inv_tauT_tab`).
-- Veri düzeltmesi: C<sub>lp</sub>(α = 55°) yalnızca bellekte düzeltilir ([§6](#6-veri-notları)).
+| Etiket | Anlamı | Birim | Üreten | Kullanan |
+|---|---|---|---|---|
+| `V_body` | Gövde ekseninde hız [u, v, w] | m/s | EOM | Atmosphere |
+| `omega_body` | Açısal hızlar [p, q, r] | rad/s | EOM | `p`, `q`, `r` olarak Aerodynamics |
+| `euler_angles` | [φ, θ, ψ] | rad | EOM | Mass & Inertia |
+| `altitude` | İrtifa h = −z_E | m | EOM | Atmosphere, Propulsion |
+| `Positions` | Yer ekseninde konum [x, y, z] (NED) | m | EOM | — |
+| `alpha`, `beta` | Hücum ve yanal kayma açısı | deg | Atmosphere | Aerodynamics, LEF |
+| `TAS` | Gerçek hava hızı V_T | m/s | Atmosphere | Aerodynamics |
+| `q_dyn` | Dinamik basınç q̄ | Pa | Atmosphere | Aerodynamics, LEF |
+| `mach` | Mach sayısı | — | Atmosphere | Propulsion |
+| `p_s` | Statik basınç | Pa | Atmosphere | LEF |
+| `dlef_cmd` | LEF komutu | deg | LEF tarifesi | Actuators |
+| `dh`, `da`, `dr`, `dlef`, `d_sb` | Gerçek yüzey açıları | deg | Actuators | Aerodynamics |
+| `throttle` | Gaz kolu | % | kök girişi | Propulsion |
+| `F_aero`, `M_aero` | Aerodinamik kuvvet ve moment | N, N·m | Aerodynamics | Toplam kuvvet, EOM |
+| `F_thrust` | İtki kuvveti | N | Propulsion | Toplam kuvvet |
+| `F_gravity` | Yerçekimi kuvveti | N | Mass & Inertia | Toplam kuvvet |
+| `F_tot` | Toplam kuvvet | N | Toplam kuvvet | EOM |
 
-### Adım 2 — Sonuçlar: `run_HW1`
+## Alt sistemler
 
-| Bölüm | Ne yapar |
+### Aerodynamics
+
+**Görevi.** Uçağa etki eden aerodinamik kuvvet ve momentleri gövde ekseninde hesaplar. Momentler ağırlık merkezi etrafında (x_cg = 0.35c̄) alınır.
+
+**Girdiler.** Port sırasıyla: α, β, δh, δlef, q, δsb, δa, δr, r, p, x_cg, q̄, S, b, c̄, V_T. Açılar derece, açısal hızlar rad/s, x_cg c̄'nin kesri olarak girer.
+
+**Çıktılar.** **F**_A = [X, Y, Z] (N) ve **M**_A = [L, M, N] (N·m).
+
+**Yapısı.** Önce açısal hızlar boyutsuz hâle getirilir: c̄/(2V_T) ve b/(2V_T) hesaplanır. Sonra altı katsayı alt sistemi (CX, CY, CZ, Cl, Cm, Cn) çalışır. En sonda katsayılar kuvvet ve momente çevrilir:
+
+- **F**_A = q̄S [C_X, C_Y, C_Z]
+- **M**_A = q̄S [b·C_l, c̄·C_m, b·C_n]
+
+Katsayılar TP-1538'in yapı taşı (build-up) denklemleriyle hesaplanır. Aşağıda Λ = 1 − δlef/25 ve C(α, β, 0), δh = 0 dilimi anlamına gelir.
+
+**C_X ve C_Z** (boyuna kuvvetler; i = X veya Z):
+
+C_i,t = C_i(α, β, δh) + ΔC_i,lef·Λ + (c̄q / 2V_T)[C_iq(α) + ΔC_iq,lef(α)·Λ] + ΔC_i,sb(α)·δsb/60
+
+ΔC_i,lef = C_i,lef(α, β) − C_i(α, β, 0)
+
+**C_Y** (yanal kuvvet):
+
+C_Y,t = C_Y(α, β) + ΔC_Y,lef·Λ + [ΔC_Y,δa + ΔC_Y,δa,lef·Λ]·δa/20 + ΔC_Y,δr·δr/30 + (b / 2V_T){r[C_Yr(α) + ΔC_Yr,lef(α)·Λ] + p[C_Yp(α) + ΔC_Yp,lef(α)·Λ]}
+
+**C_l ve C_n** (yuvarlanma ve sapma momenti; i = l veya n). Bunlar C_Y ile aynı yapıda, ayrıca iki terim içerir:
+
+- β'ya bağlı ek terim: ΔC_iβ(α)·β
+- C_n'de ağırlık merkezi kayması: −C_Y,t·(x_cg,ref − x_cg)·c̄/b
+
+**C_m** (yunuslama momenti; ödevdeki formülün aynısı):
+
+C_m,t = C_m(α, β, δh)·η_δh(δh) + (c̄q / 2V_T)[C_mq(α) + ΔC_mq,lef(α)·Λ] + C_Z,t(x_cg,ref − x_cg) + ΔC_m,lef·Λ + ΔC_m,sb(α)·δsb/60 + ΔC_m(α) + ΔC_m,ds(α, δh)
+
+Yanal katsayılardaki fark terimleri şöyle tanımlıdır:
+
+- ΔC_lef = C_lef(α, β) − C(α, β, 0)
+- ΔC_δa = C_δa=20(α, β) − C(α, β, 0)
+- ΔC_δa,lef = C_δa=20,lef(α, β) − C_lef(α, β) − ΔC_δa
+- ΔC_δr = C_δr=30(α, β) − C(α, β, 0)
+
+C_Y'de taban tablo δh'ye bağlı değildir; orada C(α, β, 0) yerine C_Y(α, β) kullanılır.
+
+**Kullanılan tablolar.** Hepsi `AeroData.<katsayı>.<tablo>` adıyla modele bağlı.
+
+| Katsayı | Tablolar |
 |---|---|
-| Uçuş koşulu | 0.4 Mach, 10 000 ft için V<sub>T</sub> = 131.2776 m/s ve q̄ = 7806.322 Pa hesaplanır |
-| 1. Tablo 1 | Modeldeki **Aerodynamics** alt sistemi geçici bir test modeline kopyalanır, 10 durum tek simülasyonda çalıştırılır (her zaman adımı bir durum). Kuvvet ve momentlerden katsayılar geri hesaplanır. Ödevin istediği gibi δ<sub>lef</sub> tablodan doğrudan verilir; LEF tarifesi kullanılmaz. |
-| 2. Tablo 2 | Modeldeki **Propulsion** alt sistemi 5 durumda t = 0'da çalıştırılır. Motor kararlı hâlde başlatılır (P<sub>3</sub>(0) = P<sub>c</sub>); böylece sonuç kararlı hâl itkisidir. |
-| 3. Sonuç dosyası | `save('HW1_Group2.mat','AeroResults','ThrustResults')` |
-| 4. Problem 2a | α = −20…90° (0.5° adım) 5 koşulda taranır. C<sub>L</sub> = C<sub>X</sub> sinα − C<sub>Z</sub> cosα, C<sub>D</sub> = −C<sub>X</sub> cosα cosβ − C<sub>Y</sub> sinβ − C<sub>Z</sub> sinα cosβ |
-| 5. Problem 2b | 9 β için C<sub>m,t</sub> hesaplanır (x<sub>cg</sub> = 0.35c̄, δ<sub>h</sub> = δ<sub>lef</sub> = δ<sub>sb</sub> = 0, q = 0). C<sub>m,tα</sub> = ∂C<sub>m,t</sub>/∂α, α = −20…60°'de merkezi farkla alınır [1/deg]. |
+| CX | `CX` (α, β, δh), `CXlef`, `CXq`, `deltaCXqlef`, `deltaCXSB` |
+| CY | `CY`, `CYlef`, `CYda20`, `CYda20lef`, `CYdr30`, `CYr`, `deltaCYrlef`, `CYp`, `deltaCYplef` |
+| CZ | `CZ` (α, β, δh), `CZlef`, `CZq`, `deltaCZqlef`, `deltaCZSB` |
+| Cl | `Cl` (α, β, δh), `Cllef`, `Clda20`, `Clda20lef`, `Cldr30`, `Clr`, `deltaClrlef`, `Clp`, `deltaClplef`, `deltaClBeta` |
+| Cm | `Cm` (α, β, δh), `n_dHT` (η_δh), `Cmlef`, `Cmq`, `deltaCmqlef`, `deltaCm`, `deltaCmds`, `deltaCmSB` |
+| Cn | `Cn` (α, β, δh), `Cnlef`, `Cnda20`, `Cnda20lef`, `Cndr30`, `Cnr`, `deltaCnrlef`, `Cnp`, `deltaCnplef`, `deltaCnBeta` |
 
-`F16_6DOF.slx` bu süreçte değiştirilmez; test modelleri iş bitince kapatılır.
+**Tabloların aralığı:**
+- Ana tablolar: α = −20…90° (20 nokta), β = −30…30° (19 nokta).
+- δh boyutu: CX, CZ ve Cm'de −25…25° (5 nokta), Cl ve Cn'de −25, 0, 25°.
+- LEF tabloları (`*lef`): yalnızca α = −20…45°.
 
-### Adım 3 — Doğrulama: `test_aero_table1`, `test_thrust_table2`
+Bütün tablolar doğrusal ara değerlenir. Tablo sınırının dışında değer sınırda sabit tutulur (Clip).
 
-İki test, alt sistemlerin sonucunu modelden bağımsız bir referansla karşılaştırır. Referans, aynı ders verisi ve TP-1538 denklemleriyle Python'da (SciPy, doğrusal ara değerleme) ayrıca hesaplandı.
+### Propulsion
 
-| Test | Tolerans | En büyük fark | Sonuç |
+**Görevi.** Gaz kolu konumundan motorun itkisini hesaplar. Motorun güce gecikmeli tepkisi de modele dahildir.
+
+**Girdiler.** Gaz kolu δ_th (%), Mach, irtifa (m).
+
+**Çıktı.** **F**_T = [T, 0, 0] (N). İtki gövde x ekseni boyunca etki eder; motor momenti yoktur.
+
+**Yapısı.** Dört adımdan oluşur.
+
+1. **Gaz dişlisi.** Gaz kolu konumu güç komutuna P_c çevrilir. %0–77 aralığı P_c = 0–50 (military güce kadar), %77–100 aralığı P_c = 50–100 (afterburner) aralığına doğrusal olarak eşlenir.
+
+2. **Motor dinamiği** (Engine Dynamics alt sistemi). Gerçek güç seviyesi P_3, Ṗ_3 = (1/τ)(P_2 − P_3) denklemine göre değişir. Hedef güç P_2 ve zaman sabiti τ şu kurallarla seçilir:
+
+   | Durum | P_2 | 1/τ |
+   |---|---|---|
+   | P_c ≥ 50 ve P_3 ≥ 50 | P_c | 5 s⁻¹ |
+   | P_c ≥ 50 ve P_3 < 50 | 60 | R_τ(P_2 − P_3) |
+   | P_c < 50 ve P_3 ≥ 50 | 40 | 5 s⁻¹ |
+   | P_c < 50 ve P_3 < 50 | P_c | R_τ(P_2 − P_3) |
+
+   R_τ(ΔP) = 1.0 (ΔP ≤ 25), 1.9 − 0.036ΔP (25 < ΔP < 50), 0.1 (ΔP ≥ 50).
+
+   Bunun sonucu şu: motor rölantiden yavaş toparlanır. Güç 50'yi geçip afterburner bölgesine girince çok hızlı tepki verir. Başlangıç değeri P_3(0) = `P3_0`'dır.
+
+3. **İtki ara değerlemesi.** Idle, military ve maximum itki tabloları Mach'a (0–1) ve irtifaya (0–50 000 ft) bağlıdır. Güç seviyesine göre ara değerlenir:
+   - T = T_idle + (T_mil − T_idle)·P_3/50 (P_3 ≤ 50)
+   - T = T_mil + (T_max − T_mil)·(P_3 − 50)/50 (P_3 > 50)
+
+4. **Birim dönüşümü.** Tablolar irtifayı ft cinsinden okuyor ve itkiyi lbf cinsinden veriyor. İrtifa girişte metreden ft'ye, itki çıkışta N'ye çevrilir.
+
+### Atmosphere
+
+**Görevi.** Standart atmosferi ve hava verilerini hesaplar.
+
+**Girdiler.** İrtifa h (m), gövde hızı **V**_B = [u, v, w] (m/s).
+
+**Çıktılar.** V_T (m/s), α (deg), β (deg), q̄ (Pa), Mach, p_s (Pa).
+
+**Denklemler.** Stevens–Lewis–Johnson Ek A.6, SI'ya çevrilmiş hâli:
+
+- Toplam hız: V_T = √(u² + v² + w²); sıfıra bölmeyi önlemek için en az 0.1 m/s.
+- Hücum açısı: α = atan2(w, u).
+- Yanal kayma açısı: β = asin(v / V_T); asin'in argümanı ±1'e sınırlanır.
+- Sıcaklık oranı: T* = 1 − k·h.
+- Sıcaklık: T = T₀·T* (h ≤ h_tp), T = T_tp (h > h_tp).
+- Yoğunluk: ρ = ρ₀·(T*)^4.14.
+- Mach: M = V_T / √(γRT).
+- Dinamik basınç: q̄ = ½ρV_T².
+- Statik basınç: p_s = R·ρ·T.
+
+**Sabitler** (`init_F16`'da İngiliz biriminden çevrilmiş değerler):
+
+| Sabit | Değer |
+|---|---|
+| ρ₀ | 1.22506 kg/m³ |
+| k | 2.30643·10⁻⁵ 1/m |
+| T₀ | 288.333 K |
+| T_tp (tropopozdaki sıcaklık) | 216.667 K |
+| h_tp (tropopoz) | 10 668 m (35 000 ft) |
+| γR | 401.813 m²/(s²·K) |
+| R (basınç için) | 286.792 J/(kg·K) |
+
+### Mass & Inertia
+
+**Görevi.** Yerçekimi kuvvetini gövde eksenine geçirir.
+
+**Girdi.** Euler açıları φ, θ. ψ kullanılmaz, çünkü yerçekiminin gövdeye göre dağılımı uçağın yönüne bağlı değildir.
+
+**Çıktı.** **F**_G (N).
+
+**Denklem.** **F**_G = W [−sinθ, sinφ·cosθ, cosφ·cosθ]
+
+**Kütle ve atalet** (TP-1538 Tablo I, `init_F16`):
+
+| Büyüklük | İngiliz birimi | SI |
+|---|---|---|
+| Ağırlık W | 20 500 lbf | 91 188.6 N (m = 9298.64 kg) |
+| Kanat alanı S | 300 ft² | 27.8709 m² |
+| Kanat açıklığı b | 30 ft | 9.144 m |
+| Ortalama veter c̄ | 11.32 ft | 3.45034 m |
+| I_xx | 9 496 slug·ft² | 12 874.8 kg·m² |
+| I_yy | 55 814 slug·ft² | 75 673.6 kg·m² |
+| I_zz | 63 100 slug·ft² | 85 552.1 kg·m² |
+| I_xz | 982 slug·ft² | 1 331.41 kg·m² |
+| Motor açısal momentumu H_e | 160 slug·ft²/s | 216.931 kg·m²/s |
+| x_cg, x_cg,ref | 0.35c̄ | 0.35c̄ |
+
+### Actuators
+
+**Görevi.** Kumanda yüzeylerinin komuta gecikmeli ve fiziksel sınırlar içinde gitmesini sağlar.
+
+**Girdiler.** δh, δa, δr, δlef ve δsb komutları (deg).
+
+**Çıktılar.** Gerçek yüzey açıları (deg).
+
+**Denklem.** Stabilatör, kanatçık, dümen ve hücum kenarı flapı birinci mertebe sistemlerdir:
+
+δ̇ = sat_hız[(sat_konum(δ_c) − δ) / τ]
+
+Komut önce konum sınırına kırpılır. Hata τ'ya bölünerek yüzeyin hızı bulunur, bu hız da hız sınırına kırpılıp integrali alınır. Hava freninde dinamik yoktur; komut yalnızca konum sınırından geçer.
+
+| Kanal | Konum sınırı | Hız sınırı | τ |
 |---|---|---|---|
-| Tablo 1 – katsayılar | 10⁻⁶ | 3.3·10⁻¹² | ✅ 10/10 |
-| Tablo 1 – kuvvet/moment | 10⁻² N, N·m | 3.3·10⁻⁶ | ✅ 10/10 |
-| Tablo 2 – itki | 10⁻² N | 4.8·10⁻⁷ | ✅ 5/5 |
+| Stabilatör δh | −25…25° | 60°/s | 0.0495 s |
+| Kanatçık δa | −21.5…21.5° | 80°/s | 0.0495 s |
+| Dümen δr | −30…30° | 120°/s | 0.0495 s |
+| Hücum kenarı flapı δlef | 0…25° | 25°/s | 0.136 s |
+| Hava freni δsb | 0…60° | — | — |
 
-### Adım 4 — Modelin tamamını çalıştırmak (isteğe bağlı)
+### Equations of Motion
 
-Ödev 6-DOF simülasyonu istemiyor, ama model tam bağlı ve çalışır durumda:
+**Görevi.** Kuvvet ve momentlerden uçağın hareketini bulur.
 
-```matlab
-init_F16
-open_system('F16_6DOF')
-out = sim('F16_6DOF', 'StopTime', '1');
-```
+**Girdiler.** Toplam kuvvet **F** = **F**_A + **F**_T + **F**_G (N), aerodinamik moment **M**_A (N·m).
 
-Kök seviyedeki 5 giriş (`dh_cmd`, `da_cmd`, `dr_cmd`, `dsb_cmd` [deg] ve `throttle` [%]) bağlanmazsa sıfır kabul edilir. Model trimli değildir; başlangıç koşulu düz uçuş hızıdır.
+**Çıktılar.** **V**_B (m/s), ω = [p, q, r] (rad/s), Euler açıları (rad), konum (m), irtifa (m).
 
----
+**Yapısı.** Alt sistemin içi beş bölüme ayrılmış:
 
-## 5. Sonuçlar
+| Bölüm | Denklem |
+|---|---|
+| Inputs | **V**_B, ω ve Euler açılarını bileşenlerine ayırır |
+| Translational Dynamics | u̇ = F_x/m + rv − qw,  v̇ = F_y/m + pw − ru,  ẇ = F_z/m + qu − pv |
+| Rotational Dynamics | ω̇ = I⁻¹[**M** − ω × **H** − ω × **h**_e], **H** = Iω, **h**_e = [H_e, 0, 0] |
+| Rotational Kinematics | φ̇ = p + (q sinφ + r cosφ) tanθ,  θ̇ = q cosφ − r sinφ,  ψ̇ = (q sinφ + r cosφ)/cosθ |
+| Translational Kinematics | Gövde hızı sırayla φ, θ, ψ kadar döndürülerek yere göre hız bulunur. Bunun integrali konumu verir; irtifa h = −z_E |
 
-### 5.1 Tablo 1 — Aerodinamik doğrulama (`AeroResults`)
+Atalet matrisi Ixz çarpımını içerir: I = [I_xx, 0, −I_xz; 0, I_yy, 0; −I_xz, 0, I_zz].
 
-Uçuş koşulu: 0.4 Mach, 10 000 ft (V<sub>T</sub> = 131.2776 m/s, q̄ = 7806.322 Pa), x<sub>cg</sub> = 0.35c̄.
+Başlangıç koşulları `init_F16`'dadır:
+- **V**_B(0) = [131.28, 0, 0] m/s
+- ω(0) = 0
+- Euler açıları = 0
+- Konum = [0, 0, −3048] m
 
-| Durum | Değişen giriş | C<sub>X</sub> | C<sub>Y</sub> | C<sub>Z</sub> | C<sub>l</sub> | C<sub>m</sub> | C<sub>n</sub> |
-|:-:|---|--:|--:|--:|--:|--:|--:|
-| 1 | — (hepsi 0) | −0.020200 | 0 | −0.100000 | 0 | −0.007700 | 0 |
-| 2 | δ<sub>sb</sub> = 60° | −0.030300 | 0 | −0.485800 | 0 | −0.011100 | 0 |
-| 3 | α = 20° | 0.022100 | 0 | −1.355000 | 0 | 0.023900 | 0 |
-| 4 | β = 12.5° | −0.015200 | −0.267700 | −0.106500 | −0.018200 | −0.006600 | 0.051200 |
-| 5 | δ<sub>h</sub> = −15° | −0.050167 | 0 | 0.019333 | 0 | 0.127733 | 0 |
-| 6 | δ<sub>lef</sub> = 25° | −0.048900 | 0 | −0.025000 | 0 | −0.040800 | 0 |
-| 7 | δ<sub>a</sub> = 10° | −0.020200 | 0.010450 | −0.100000 | −0.025600 | −0.007700 | −0.004950 |
-| 8 | δ<sub>r</sub> = −15° | −0.020200 | −0.041050 | −0.100000 | −0.007250 | −0.007700 | 0.022550 |
-| 9 | α = 5.16°, δ<sub>h</sub> = −0.47°, δ<sub>lef</sub> = 7.55° | −0.003960 | 0 | −0.417217 | 0 | 0.000061 | 0 |
-| 10 | karışık (Tablo 1) | 0.000621 | 0.000193 | −0.478558 | 0.000287 | 0.000054 | 0.000033 |
+Euler açılarıyla yazıldığı için θ = ±90°'de kinematik denklem tekildir.
+
+### LEF tarifesi ve toplam kuvvet
+
+**LEF tarifesi.** Hücum kenarı flapının komutunu α'ya ve q̄/p_s oranına göre üretir. Komut, Actuators'ın flap kanalına gider:
+
+δlef = 1.38·(2s + 7.25)/(s + 7.25)·α − 9.05·q̄/p_s + 1.45
+
+- (2s + 7.25)/(s + 7.25) bir ön-geri filtresidir: kararlı hâlde kazancı 1'dir, ani α değişimlerinde 2'ye çıkar.
+- q̄/p_s oranı Mach'ın karesiyle orantılıdır, (γ/2)M². Hız arttıkça flap toplanır.
+- Ödevin istediği gibi Tablo 1 hesaplarında bu tarife kullanılmaz; δlef tablodan doğrudan verilir.
+
+**Toplam kuvvet.** Aerodinamik, itki ve yerçekimi kuvvetleri gövde ekseninde toplanır: **F** = **F**_A + **F**_T + **F**_G.
+
+## Doğrulama
+
+Ödev, aerodinamik alt sistemin Tablo 1'deki 10 durum ve motor alt sisteminin Tablo 2'deki 5 durum için doğrulanmasını istiyor. Her durumda katsayıların, kuvvet ve momentlerin ya da kararlı hâl itkisinin hesaplanıp ortak bir dosya düzeninde teslim edilmesi isteniyor; böylece bütün grupların sonuçları doğrudan karşılaştırılabilecek.
+
+**Aerodinamik doğrulama (Tablo 1).**
+- `run_HW1`, modeldeki Aerodynamics bloğunun bir kopyasını geçici bir test modeline koyar. Tablodaki girişleri verir ve çıkışları okur; yani sonuçlar doğrudan modelin kendi alt sisteminden gelir.
+- Uçuş koşulu atmosfer denklemlerinden hesaplanır: 0.4 Mach, 10 000 ft → V_T = 131.2776 m/s, q̄ = 7806.322 Pa.
+- Tablodaki p, q, r değerleri deg/s'den rad/s'ye çevrilir.
+- δlef tablodan doğrudan verilir; LEF tarifesi kullanılmaz.
+- Katsayılar kuvvet ve momentlerden geri hesaplanır: C_X = X/(q̄S), C_l = L/(q̄Sb), C_m = M/(q̄Sc̄).
+- Sonuç `AeroResults` (10×12): sütunlar C_X, C_Y, C_Z, C_l, C_m, C_n, X, Y, Z, L, M, N.
+
+**Motor doğrulaması (Tablo 2).**
+- Propulsion bloğunun bir kopyası her durum için tek başına çalıştırılır.
+- Ödev kararlı hâl itkisini istediği için motor, başlangıçta o gaz konumunun kararlı gücünde başlatılır (P_3(0) = P_c). Böylece motor gecikmesi sonucu etkilemez.
+- Sonuç `ThrustResults` (5×1, N).
+
+**Sonuç dosyası.** İki değişken ödevin istediği sıra ve boyutta, double olarak `HW1_Group2.mat`'a kaydedilir. Dosyada başka değişken yoktur.
+
+**Ek kontrol.** İki test scripti aynı hesabı yapıp sonuçları referans değerlerle karşılaştırır. Referans değerler, geliştirme sırasında aynı ders verisi ve TP-1538 denklemleriyle, modelden bağımsız olarak hesaplanıp scriptlere yazıldı. Bütün durumlar referansla aynı çıkıyor:
+
+| Kontrol | Tolerans | En büyük fark |
+|---|---|---|
+| Tablo 1, katsayılar (10 durum) | 10⁻⁶ | 3.3·10⁻¹² |
+| Tablo 1, kuvvet ve momentler (10 durum) | 10⁻² N, N·m | 3.3·10⁻⁶ |
+| Tablo 2, itki (5 durum) | 10⁻² N | 4.8·10⁻⁷ N |
+
+## Sonuçlar
+
+### Tablo 1: Aerodinamik doğrulama
+
+Durumların girişleri (açılar deg, açısal hızlar deg/s):
+
+| Durum | α | β | p | q | r | δa | δh | δr | δlef | δsb |
+|:-:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 60 |
+| 3 | 20 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 4 | 0 | 12.5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 5 | 0 | 0 | 0 | 0 | 0 | 0 | −15 | 0 | 0 | 0 |
+| 6 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 25 | 0 |
+| 7 | 0 | 0 | 0 | 0 | 0 | 10 | 0 | 0 | 0 | 0 |
+| 8 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | −15 | 0 | 0 |
+| 9 | 5.16 | 0 | 0 | 0 | 0 | 0 | −0.47 | 0 | 7.55 | 0 |
+| 10 | 5.95 | 0 | −0.53 | 1.21 | 2.09 | −0.055 | −0.62 | −0.33 | 8.65 | 0 |
+
+Katsayılar:
+
+| Durum | C_X | C_Y | C_Z | C_l | C_m | C_n |
+|:-:|--:|--:|--:|--:|--:|--:|
+| 1 | −0.020200 | 0 | −0.100000 | 0 | −0.007700 | 0 |
+| 2 | −0.030300 | 0 | −0.485800 | 0 | −0.011100 | 0 |
+| 3 | 0.022100 | 0 | −1.355000 | 0 | 0.023900 | 0 |
+| 4 | −0.015200 | −0.267700 | −0.106500 | −0.018200 | −0.006600 | 0.051200 |
+| 5 | −0.050167 | 0 | 0.019333 | 0 | 0.127733 | 0 |
+| 6 | −0.048900 | 0 | −0.025000 | 0 | −0.040800 | 0 |
+| 7 | −0.020200 | 0.010450 | −0.100000 | −0.025600 | −0.007700 | −0.004950 |
+| 8 | −0.020200 | −0.041050 | −0.100000 | −0.007250 | −0.007700 | 0.022550 |
+| 9 | −0.003960 | 0 | −0.417217 | 0 | 0.000061 | 0 |
+| 10 | 0.000621 | 0.000193 | −0.478558 | 0.000287 | 0.000054 | 0.000033 |
+
+Kuvvetler ve momentler:
 
 | Durum | X [N] | Y [N] | Z [N] | L [N·m] | M [N·m] | N [N·m] |
 |:-:|--:|--:|--:|--:|--:|--:|
-| 1 | −4 394.90 | 0 | −21 756.93 | 0 | −5 780.29 | 0 |
-| 2 | −6 592.35 | 0 | −105 695.17 | 0 | −8 332.63 | 0 |
-| 3 | 4 808.28 | 0 | −294 806.41 | 0 | 17 941.42 | 0 |
-| 4 | −3 307.05 | −58 243.30 | −23 171.13 | −36 208.06 | −4 954.54 | 101 860.03 |
-| 5 | −10 914.73 | 0 | 4 206.34 | 0 | 95 887.78 | 0 |
-| 6 | −10 639.14 | 0 | −5 439.23 | 0 | −30 628.04 | 0 |
-| 7 | −4 394.90 | 2 273.60 | −21 756.93 | −50 930.02 | −5 780.29 | −9 847.80 |
-| 8 | −4 394.90 | −8 931.22 | −21 756.93 | −14 423.54 | −5 780.29 | 44 862.18 |
-| 9 | −861.66 | 0 | −90 773.72 | 0 | 45.84 | 0 |
-| 10 | 135.14 | 42.05 | −104 119.59 | 571.22 | 40.39 | 65.40 |
+| 1 | −4394.90 | 0 | −21756.93 | 0 | −5780.29 | 0 |
+| 2 | −6592.35 | 0 | −105695.17 | 0 | −8332.63 | 0 |
+| 3 | 4808.28 | 0 | −294806.41 | 0 | 17941.42 | 0 |
+| 4 | −3307.05 | −58243.30 | −23171.13 | −36208.06 | −4954.54 | 101860.03 |
+| 5 | −10914.73 | 0 | 4206.34 | 0 | 95887.78 | 0 |
+| 6 | −10639.14 | 0 | −5439.23 | 0 | −30628.04 | 0 |
+| 7 | −4394.90 | 2273.60 | −21756.93 | −50930.02 | −5780.29 | −9847.80 |
+| 8 | −4394.90 | −8931.22 | −21756.93 | −14423.54 | −5780.29 | 44862.18 |
+| 9 | −861.66 | 0 | −90773.72 | 0 | 45.84 | 0 |
+| 10 | 135.14 | 42.05 | −104119.59 | 571.22 | 40.39 | 65.40 |
 
-### 5.2 Tablo 2 — İtki doğrulaması (`ThrustResults`)
+Tablodan okunabilen bazı noktalar:
+- Durum 6'da δlef = 25°, yani Λ = 0'dır ve LEF fark terimleri sıfırlanır. Sonuç doğrudan taban tablolardan gelir.
+- Durum 1'de δlef = 0, yani Λ = 1'dir ve LEF fark terimleri tam ağırlıkla girer.
+- Durum 5'teki negatif δh (−15°) burnu yukarı kaldıran büyük bir yunuslama momenti üretir: C_m = 0.1277.
 
-| Durum | Mach | İrtifa [ft] | Gaz kolu [%] | P<sub>c</sub> [%] | İtki [N] | İtki [lbf] |
+### Tablo 2: İtki doğrulaması
+
+| Durum | Mach | İrtifa [ft] | Gaz kolu [%] | Güç komutu P_c [%] | İtki [N] | İtki [lbf] |
 |:-:|:-:|--:|--:|--:|--:|--:|
-| 1 | 0.25 | 5 000 | 10.00 | 6.49 | 7 891.80 | 1 774.15 |
-| 2 | 0.65 | 25 000 | 77.00 | 50.00 | 26 867.26 | 6 040.00 |
-| 3 | 0.90 | 45 000 | 95.00 | 89.13 | 24 059.66 | 5 408.83 |
-| 4 | 0.40 | 10 000 | 16.66 | 10.82 | 9 049.33 | 2 034.37 |
-| 5 | 0.40 | 10 000 | 19.77 | 12.84 | 10 717.85 | 2 409.47 |
+| 1 | 0.25 | 5000 | 10.00 | 6.49 | 7891.80 | 1774.15 |
+| 2 | 0.65 | 25000 | 77.00 | 50.00 | 26867.26 | 6040.00 |
+| 3 | 0.90 | 45000 | 95.00 | 89.13 | 24059.66 | 5408.83 |
+| 4 | 0.40 | 10000 | 16.66 | 10.82 | 9049.33 | 2034.37 |
+| 5 | 0.40 | 10000 | 19.77 | 12.84 | 10717.85 | 2409.47 |
 
-Durum 2'de gaz kolu tam military noktasında (%77 → P<sub>c</sub> = 50); itki doğrudan military tablosundan gelir.
+Durum 2'de gaz kolu tam military noktasında (%77 → P_c = 50); itki doğrudan military tablosundan gelir. Durum 3'te gaz kolu afterburner bölgesindedir (P_c > 50); itki military ile maximum arasında ara değerlenir.
 
-### 5.3 Problem 2a — Kaldırma ve sürükleme katsayıları
+### Problem 2a: Kaldırma ve sürükleme katsayıları
 
-![Problem 2a](figures/P2a_CL_CD.png)
+Beş koşulda α = −20…90° aralığı 0.5° adımla tarandı. Açısal hızlar sıfır, uçuş koşulu Tablo 1 ile aynı. Gövde eksenindeki katsayılar rüzgâr eksenine çevrildi:
 
-| Koşul | Grafikte görülen etki |
-|---|---|
-| i. taban (β = δ<sub>h</sub> = δ<sub>lef</sub> = δ<sub>sb</sub> = 0) | C<sub>L,max</sub> ≈ 1.72, α ≈ 35–40°'de; C<sub>D</sub> en küçük değerine α ≈ 0°'da iner |
-| ii. δ<sub>sb</sub> = 60° | Düşük α'da C<sub>L</sub> artar (α = 0°'da ≈ +0.45), C<sub>L,max</sub> ≈ 1.5–1.6'ya düşer; α ≳ 5°'te sürükleme tabandan belirgin şekilde büyüktür |
-| iii. δ<sub>lef</sub> = 25° | Hücum kenarı flapı C<sub>L,max</sub>'ı ≈ 1.9'a çıkarır (α ≈ 35°) |
-| iv. β = 15° | C<sub>L,max</sub> ≈ 1.57'ye düşer; α ≈ 0°'da C<sub>D</sub> tabandan büyük, α ≳ 35°'te küçüktür |
-| v. δ<sub>h</sub> = −25° | Kuyruk aşağı yönde kuvvet ürettiği için α ≲ 45°'te C<sub>L</sub> tabandan küçüktür; C<sub>D</sub> negatif α'da büyük, yüksek α'da küçüktür |
+C_L = C_X sinα − C_Z cosα
+C_D = −C_X cosα cosβ − C_Y sinβ − C_Z sinα cosβ
 
-### 5.4 Problem 2b — Yunuslama momenti ve statik kararlılık
+| Koşul | β | δh | δlef | δsb |
+|:-:|:-:|:-:|:-:|:-:|
+| i | 0 | 0 | 0 | 0 |
+| ii | 0 | 0 | 0 | 60 |
+| iii | 0 | 0 | 25 | 0 |
+| iv | 15 | 0 | 0 | 0 |
+| v | 0 | −25 | 0 | 0 |
 
-![Problem 2b – Cm](figures/P2b_Cm.png)
+![C_L ve C_D](figures/P2a_CL_CD.png)
 
-![Problem 2b – Cm_alpha](figures/P2b_Cm_alpha.png)
+- **Temel durum (i).** C_L, α ile neredeyse doğrusal artıyor ve en yüksek değerine (yaklaşık 1.72) α = 35–40° civarında ulaşıyor. Bu noktadan sonra stall nedeniyle düşüyor ve α = 90°'de sıfıra yaklaşıyor. C_D en küçük değerini α ≈ 0°'da alıyor; α arttıkça hızla büyüyerek α = 90°'de 2.2'ye ulaşıyor.
+- **Hava freni (ii, δsb = 60°).** Düşük α'da kaldırmayı artırıyor; α = 0°'da C_L yaklaşık 0.45 daha büyük. Ancak C_L'nin en yüksek değeri 1.5–1.6'ya düşüyor. α 5°'yi geçince sürükleme tabandan belirgin şekilde büyük. Hava freninin asıl amacı da sürüklemeyi artırmak.
+- **Hücum kenarı flapı (iii, δlef = 25°).** C_L'nin en yüksek değerini yaklaşık 1.9'a çıkarıyor. Flap kanadın ön kenarında akışın ayrılmasını geciktirdiği için yüksek α'da daha fazla kaldırma elde ediliyor.
+- **Yanal kayma (iv, β = 15°).** C_L'nin en yüksek değeri yaklaşık 1.57'ye düşüyor. α ≈ 0°'da C_D tabandan büyük; bunun bir kısmı C_Y sinβ teriminden geliyor. α 35°'yi geçince C_D tabandan küçük.
+- **Stabilatör (v, δh = −25°).** Stabilatörün negatif açısı kuyrukta aşağı yönde kuvvet üretiyor. Bu yüzden α 45°'nin altındayken C_L tabandan küçük. C_D negatif α'da büyük, yüksek α'da küçük.
 
-C<sub>m,tα</sub> > 0 olan bölgeler boyuna yönde **statik olarak kararsızdır**:
+Grafiklerdeki 45° çizgisi LEF tablolarının bittiği noktayı gösterir (bkz. Veri notları).
 
-| β [deg] | C<sub>m,tα</sub> > 0 olan α aralıkları [deg] |
+### Problem 2b: Yunuslama momenti ve statik kararlılık
+
+C_m,t, ödevin verdiği formülle 9 β değeri (−30, −15, −10, −6, 0, 6, 10, 15, 30°) için hesaplandı. Koşullar:
+- x_cg = x_cg,ref = 0.35c̄; ağırlık merkezi terimi sıfır.
+- δh = δlef = δsb = 0, q = 0.
+
+C_m,tα = ∂C_m,t/∂α, α = −20…60° aralığında merkezi farkla hesaplandı ve 1/deg cinsinden verildi. Tablolar 5°'lik noktalar arasında doğrusal ara değerlendiği için türev basamaklı görünür.
+
+![C_m,t](figures/P2b_Cm.png)
+
+![C_m,tα](figures/P2b_Cm_alpha.png)
+
+C_m,tα < 0 olduğunda α artınca burnu aşağı indiren bir moment oluşur ve uçak boyuna yönde statik olarak kararlıdır. C_m,tα > 0 ise kararsızdır. Her β için kararsız α aralıkları:
+
+| β [deg] | C_m,tα > 0 olan α aralıkları [deg] |
 |:-:|---|
-| −30 | [25, 35], [40, 50], [55, 60] |
-| −15 | [−20, −15], [−4.5, 14.5], [35.5, 50], [55, 60] |
-| −10 | [−14.5, 15], [40, 50], [55, 60] |
-| −6 | [−14.5, 15], [25.5, 30], [35.5, 50], [55, 60] |
-| 0 | [−14.5, 15], [35.5, 50], [55, 60] |
-| 6 | [−14.5, 15], [40, 50], [55, 60] |
-| 10 | [−14.5, 15], [40, 50], [55, 60] |
-| 15 | [−14.5, −10.5], [−5, 14.5], [35.5, 50], [55, 60] |
-| 30 | [25, 34.5], [40, 50], [55, 60] |
+| −30 | 25…35, 40…50, 55…60 |
+| −15 | −20…−15, −4.5…14.5, 35.5…50, 55…60 |
+| −10 | −14.5…15, 40…50, 55…60 |
+| −6 | −14.5…15, 25.5…30, 35.5…50, 55…60 |
+| 0 | −14.5…15, 35.5…50, 55…60 |
+| 6 | −14.5…15, 40…50, 55…60 |
+| 10 | −14.5…15, 40…50, 55…60 |
+| 15 | −14.5…−10.5, −5…14.5, 35.5…50, 55…60 |
+| 30 | 25…34.5, 40…50, 55…60 |
 
-- x<sub>cg</sub> = 0.35c̄'de uçak düşük α'da (≈ −15…15°) **gevşetilmiş statik kararlılık** gösterir: C<sub>m,tα</sub> > 0. TP-1538'in incelediği durum da budur; bu bölgede uçuş kontrol sisteminin kararlılığı sağlaması gerekir.
-- β = 0'da α ≈ 15–35° ve 50–55° arası kararlı; α ≈ 35–50° ve 55–60° yeniden kararsız.
-- |β| ≤ 10° için eğriler birbirine yakın; |β| = 30°'de düşük α'daki kararsızlık kaybolur, yüksek α'daki kararsızlık başlangıcı 25°'e iner.
-- β = −6° eğrisindeki α ≈ 20–30° sıçraması tek bir veri noktasından gelir ([§6](#6-veri-notları)); aerodinamik bir etki değildir.
+- **β = 0.** Uçak yaklaşık −15° < α < 15° aralığında statik olarak kararsız. TP-1538'in incelediği "gevşetilmiş boyuna statik kararlılık" durumu bu. F-16 bu ağırlık merkezi konumunda (0.35c̄) kendi başına kararsız; bu bölgede kararlılığı uçuş kontrol sistemi sağlar. α = 15–35° arası kararlı, 35–50° arası yeniden kararsız, 50–55° arası kararlı, 55–60° arası kararsız.
+- **β'nın etkisi.** |β| ≤ 10° için eğriler birbirine yakın ve kararsız bölgeler büyük ölçüde aynı. |β| = 15°'de düşük α'daki kararsız bölge ikiye bölünüyor. |β| = 30°'de düşük α'daki kararsızlık ortadan kalkıyor, ama yüksek α'daki kararsızlık daha erken, α = 25° civarında başlıyor. Yani büyük yanal kaymada uçak düşük α'da daha kararlı, orta α'da daha kararsız.
+- **β = −6° eğrisi.** α = 20–30° arasındaki çukur ve C_m,tα'daki sıçrama, tablodaki tek bir veri noktasından geliyor (bkz. Veri notları); aerodinamik bir etki değil. β = +6°'daki simetrik eğride bu çukur yok.
 
----
+## Veri notları
 
-## 6. Veri notları
+- **C_lp, α = 55°.** Ders verisinde −1200 yazıyor. TP-1538 Tablo III'te bu değer −0.12; komşu değerler −0.10 ve −0.14. Bu açıkça bir yazım hatası. `init_F16` değeri bellekte −0.12 olarak düzeltiyor ve ekrana bir not yazıyor; veri dosyası değiştirilmedi. Tablo 1'deki durumlar α = 55°'yi kullanmadığı için sonuçları etkilemiyor.
+- **C_m,lef, α = 25°, β = −6°.** Değer −0.1607. Komşu noktalar −0.0648 (β = −8°) ve −0.0558 (β = −4°), β = +6°'daki simetrik karşılığı −0.0530. Aynı değer TP-1538 Tablo III'te de bulunuyor; yani ders verisi orijinali doğru aktarmış, ama değer büyük olasılıkla orijinal rapordaki bir baskı hatası. Ödev verilen verinin kullanılmasını istediği için değer olduğu gibi bırakıldı. Yalnızca Problem 2b'deki β = −6° eğrisini etkiliyor.
+- **LEF tablolarının aralığı.** LEF tabloları (`*lef`, `delta*lef`) yalnızca α = −20…45° aralığında tanımlı; ana tablolar −20…90°'yi kapsıyor. 45°'nin üstünde lookup'lar sınır değerini kullandığı için LEF katkısı 45°'deki değerinde sabit kalıyor. Bu, verinin bir sınırı ve grafiklerde 45° çizgisiyle işaretlendi.
 
-| Konu | Durum | Ne yapıldı |
-|---|---|---|
-| C<sub>lp</sub>(α = 55°) | Ders verisinde **−1200**; TP-1538 Tablo III'te **−0.12** (komşular −0.10, −0.14) | `init_F16` bellekte −0.12 yapar; veri dosyası değiştirilmez. Tablo 1 sonuçlarını etkilemez. |
-| C<sub>m,lef</sub>(α = 25°, β = −6°) | Ders verisinde ve TP-1538 Tablo III'te **−0.1607**; komşuları ≈ −0.06, β = +6°'daki karşılığı −0.0530 | Muhtemelen orijinal rapordaki bir baskı hatası. Değer, verildiği gibi kullanıldı; yalnızca Problem 2b'deki β = −6° eğrisini etkiler. |
-| LEF tabloları | Yalnızca α = −20…45° aralığında tanımlı (ana tablolar −20…90°) | Bütün lookup'lar sınır dışında **Clip** kullanır; 45°'nin üstünde LEF katkısı 45°'deki değerinde kalır. Grafiklerde 45° çizgisiyle işaretli. |
+## Kabuller
 
----
+- **Birimler.** Modelin içinde SI kullanılıyor. Açılar ve kumanda yüzeyleri derece, açısal hızlar rad/s. Dönüşümler için 1 ft = 0.3048 m, 1 lbf = 4.448222 N kullanıldı (ödevin istediği değerler). g = 9.80665 m/s².
+- **Eksenler.** Kuvvet ve momentler gövde ekseninde. Momentler x_cg = 0.35c̄ etrafında alınıyor. Konum NED ekseninde, irtifa h = −z_E.
+- **LEF katkısı.** Λ = 1 − δlef/25 ile ölçekleniyor (TP-1538 ve ödevin C_m,t formülü). δlef = 25°'de Λ = 0 olur ve LEF fark terimleri sıfırlanır.
+- **Ara değerleme.** Bütün tablolar doğrusal ara değerleniyor; tablo sınırının dışında son değer korunuyor.
+- **Problem 2.** Açısal hızlar sıfır, uçuş koşulu Tablo 1 ile aynı (0.4 Mach, 10 000 ft). C_L ve C_D gövde eksenindeki katsayılardan rüzgâr eksenine dönüşümle bulunuyor. C_m,tα, 0.5° aralıklı C_m,t değerlerinden sayısal türevle (1/deg) hesaplanıyor.
+- **Motor.** İtki gövde x ekseni boyunca etki ediyor; itkinin ağırlık merkezine göre momenti yok. Motorun açısal momentumu H_e sabit alınıyor.
+- **Eyleyiciler.** Başlangıç açıları sıfır. Kumanda komutları önce konum sınırına kırpılıyor.
 
-## 7. Birimler ve kabuller
+## Kaynaklar
 
-| Büyüklük | Birim / kabul |
-|---|---|
-| Uzunluk, hız, kuvvet, moment | m, m/s, N, N·m (SI) |
-| α, β, kumanda yüzeyleri | deg |
-| p, q, r | rad/s (Tablo 1'deki deg/s değerleri çevrilir) |
-| Eksenler | Kuvvet ve momentler gövde ekseninde; momentler x<sub>cg</sub> = 0.35c̄ etrafında |
-| LEF katkısı | Λ = 1 − δ<sub>lef</sub>/25 ile ölçeklenir (TP-1538 ve ödev formülü) |
-| Ara değerleme | Bütün tablolar doğrusal, sınır dışında Clip |
-| Konum | NED; irtifa h = −z<sub>E</sub> |
+- L. T. Nguyen, M. E. Ogburn, W. P. Gilbert, K. S. Kibler, P. W. Brown, P. L. Deal, *Simulator Study of Stall/Post-Stall Characteristics of a Fighter Airplane With Relaxed Longitudinal Static Stability*, NASA TP-1538, 1979.
+- B. L. Stevens, F. L. Lewis, E. N. Johnson, *Aircraft Control and Simulation: Dynamics, Controls Design, and Autonomous Systems*, 3. baskı, Wiley, 2016.
 
----
-
-<sub>Kaynaklar: Nguyen vd., *NASA TP-1538*, 1979 · Stevens, Lewis, Johnson, *Aircraft Control and Simulation*, 3. baskı, Wiley, 2016. `reference/bhattacharya-f16/` klasöründeki karşılaştırma modeli © 2023 Raktim Bhattacharya, [MIT Lisansı](LICENSE).</sub>
+`reference/bhattacharya-f16/` klasöründeki karşılaştırma modeli © 2023 Raktim Bhattacharya, MIT Lisansı (`LICENSE`).
