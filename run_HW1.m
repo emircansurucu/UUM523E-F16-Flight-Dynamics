@@ -6,6 +6,7 @@
 %   3. Sonuc dosyasi: HW1_Group2.mat (yalnizca AeroResults ve ThrustResults)
 %   4. Problem 2a: 5 kosulda C_L ve C_D - alpha grafikleri
 %   5. Problem 2b: 9 beta icin C_m,T - alpha ve C_m,alpha - alpha grafikleri
+%   6. Tam model simulasyonu (serbest yanit, 6 s): V_T, alpha, theta, q, h grafigi
 %
 %  Alt sistemler gecici test modellerine (harness) kopyalanip tek basina
 %  calistirilir; F16_6DOF.slx DEGISTIRILMEZ. Grafikler figures/ klasorune kaydedilir.
@@ -143,6 +144,49 @@ fprintf('\nProblem 2b - C_m,alpha > 0 (kararsiz) olan alpha araliklari [deg]:\n'
 for j = 1:numel(beta2b)
     fprintf('  beta = %5.1f : %s\n', beta2b(j), ranges(aB, Cma(:,j) > 0));
 end
+
+%% 6. Tam model simulasyonu (rapor Bolum 5): serbest yanit, kumandalar 0, gaz kolu %0
+%  Kok girisler (Inport) dis giris olmadan 0 kabul edilir. Model trim edilmemistir.
+%  t ~ 7 s'de theta = -90 deg (Euler tekilligi) oldugundan sure 6 s ile sinirlidir.
+%  Sinyaller integrator durumlarindan hesaplanir; model degistirilmez.
+so = sim('F16_6DOF', 'StopTime','6', 'SaveState','on', 'StateSaveName','xout', ...
+         'SaveFormat','Dataset');
+xs = so.get('xout');
+for k = 1:xs.numElements
+    el = xs.getElement(k);
+    bp = el.BlockPath.getBlock(1);
+    switch bp
+        case 'F16_6DOF/Equations of Motion/Integrator',  Vb  = el.Values;   % [u v w]
+        case 'F16_6DOF/Equations of Motion/Integrator1', Wb  = el.Values;   % [p q r]
+        case 'F16_6DOF/Equations of Motion/Integrator2', Eul = el.Values;   % [phi theta psi]
+        case 'F16_6DOF/Equations of Motion/Integrator3', Pos = el.Values;   % [x y z]
+    end
+end
+ts  = Vb.Time;
+uvw = squeeze(Vb.Data);   if size(uvw,1) == 3, uvw = uvw.'; end
+pqr = squeeze(Wb.Data);   if size(pqr,1) == 3, pqr = pqr.'; end
+eul = squeeze(Eul.Data);  if size(eul,1) == 3, eul = eul.'; end
+xyz = squeeze(Pos.Data);  if size(xyz,1) == 3, xyz = xyz.'; end
+VT   = sqrt(sum(uvw.^2, 2));
+simY = [VT, atan2(uvw(:,3), uvw(:,1))*180/pi, eul(:,2)*180/pi, pqr(:,2)*180/pi, -xyz(:,3)];
+fig = figure('Name','Full model', 'Position',[100 100 1000 520]);
+tl = tiledlayout(fig, 2, 2, 'TileSpacing','compact');
+nexttile(tl);  plot(ts, simY(:,1), 'LineWidth',1.3);  grid on;  ylabel('V_T [m/s]');
+nexttile(tl);  plot(ts, simY(:,2:3), 'LineWidth',1.3);  grid on;  ylabel('[deg]');
+legend('\alpha', '\theta', 'Location','southwest');
+nexttile(tl);  plot(ts, simY(:,4), 'LineWidth',1.3);  grid on;  ylabel('q [deg/s]');
+nexttile(tl);  plot(ts, simY(:,5), 'LineWidth',1.3);  grid on;  ylabel('h [m]');
+xlabel(tl, 'Time [s]');
+title(tl, 'Full model, free response (\delta_h = \delta_a = \delta_r = \delta_{sb} = 0, throttle = 0 %)');
+exportgraphics(fig, fullfile(figDir, 'P1_FullModel.png'), 'Resolution',200);
+
+fprintf('\nTam model (serbest yanit) - t = 0 / 3 / 6 s:\n');
+fprintf('%10s %10s %10s %10s %10s %10s\n', 't [s]', 'V_T', 'alpha', 'theta', 'q', 'h');
+for tq = [0 3 6]
+    fprintf('%10g', tq);  fprintf('%11.3f', interp1(ts, simY, tq));  fprintf('\n');
+end
+[qMin, iq] = min(simY(:,4));
+fprintf('En buyuk burun asagi yunuslama hizi: %.2f deg/s (t = %.2f s)\n', qMin, ts(iq));
 
 close_system(aeroTm, 0);
 evalin('base', 'clear in_*');

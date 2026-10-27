@@ -3,17 +3,33 @@
 %  Kaynaklar:
 %    1. NASA TP-1538 (Nguyen et al., 1979)
 %    2. Stevens, Lewis, and Johnson (2016) - Appendix A.6
-%  Veri: dersin orijinal dosyalari (data/f16_AerodynamicData.mat,
-%        data/f16_EngineData.mat). Dosyalar degistirilmez; duzeltmeler
-%        yalnizca bellekte yapilir.
 %% =========================================================================
 
 %% 1. Veri Dosyalarinin Yuklenmesi (.mat)
-dataDir = fullfile(fileparts(mfilename('fullpath')), 'data');
-load(fullfile(dataDir, 'f16_AerodynamicData.mat')); % f16_AerodynamicData (.data ve .BP)
-load(fullfile(dataDir, 'f16_EngineData.mat'));      % f16_EngineData (.data ve .BP)
+addpath('data');
+load("f16_AerodynamicData.mat")
+load('f16_EngineData.mat');
 
-%% 2. Birim Donusum Katsayilari (Odev Foyu Sayfa 1)
+%% 2. Aerodinamik Tablo Kısayolları
+AeroData = f16_AerodynamicData.data;
+AeroBP   = f16_AerodynamicData.BP;
+
+%% Veri düzeltmesi: ders verisinde Clp(alpha = 55 deg) = -1200 girilmiş.
+% NASA TP-1538 Tablo III'te bu değer -0.12'dir (komşu degerler -0.10 / -0.14).
+iClp = AeroBP.Cl.Clp.alpha == 55;
+if AeroData.Cl.Clp(iClp) < -100
+    AeroData.Cl.Clp(iClp) = -0.12;
+    fprintf('init_F16: Clp(alpha=55) -1200 -> -0.12 olarak düzeltildi (TP-1538).\n');
+end
+
+% dh = 0 deg dilimleri
+CX_dh0 = AeroData.CX.CX(:,:,3);
+CZ_dh0 = AeroData.CZ.CZ(:,:,3);
+Cm_dh0 = AeroData.Cm.Cm(:,:,3);
+Cn_dh0 = AeroData.Cn.Cn(:,:,2);
+Cl_dh0 = AeroData.Cl.Cl(:,:,2);
+
+%% 3. Birim Dönüşüm Katsayıları
 ft2m   = 0.3048;                 % 1 ft = 0.3048 m
 lbf2N  = 4.448222;               % 1 lbf = 4.448222 N
 deg2rad = pi / 180;
@@ -30,19 +46,19 @@ h_trop_SI = 35000 * ft2m;
 gamma_R_SI = 1.4 * 1716.3 * R_conv;
 R_ps_SI = 1715 * R_conv;
 
-%% 3. Kutle, Geometri ve Atalet Ozellikleri (NASA TP-1538 Tablo I -> SI)
+%% 4. Kütle, Geometri ve Atalet Özellikleri (NASA TP-1538 Tablo I -> SI)
 g      = 9.80665;                % Yercekimi ivmesi (m/s^2)
-Weight = 20500.0 * lbf2N;        % Agirlik: 91188.551 N
-m      = Weight / g;             % Kutle: ~9298.64 kg (637.14 slugs)
+Weight = 20500.0 * lbf2N;        % Ağırlık: 91188.551 N
+m      = Weight / g;             % Kütle: ~9298.64 kg (637.14 slugs)
 
-b      = 30.0 * ft2m;            % Kanat acikligi: 9.144 m
-S      = 300.0 * (ft2m^2);       % Kanat alani: 27.870912 m^2
+b      = 30.0 * ft2m;            % Kanat açıklığı: 9.144 m
+S      = 300.0 * (ft2m^2);       % Kanat alanı: 27.870912 m^2
 cbar   = 11.32 * ft2m;           % Ortalama aerodinamik veter (MAC): 3.450336 m
 
 xcgr   = 0.35;                   % Referans c.g. konumu (0.35 * cbar)
-xcg    = 0.35;                   % Gercek c.g. konumu (0.35 * cbar)
+xcg    = 0.35;                   % Gerçek c.g. konumu (0.35 * cbar)
 
-% Atalet Momentleri (slug*ft^2 -> kg*m^2 donusumu: 1 slug = lbf*s^2/ft)
+% Atalet Momentleri (slug*ft^2 -> kg*m^2 dönüşümü: 1 slug = lbf*s^2/ft)
 slugft2_to_kgm2 = lbf2N * ft2m;  % ~1.355818
 Ixx = 9496.0  * slugft2_to_kgm2; % ~12874.85 kg*m^2
 Iyy = 55814.0 * slugft2_to_kgm2; % ~75673.62 kg*m^2
@@ -54,44 +70,25 @@ I_mat = [ Ixx,  0,   -Ixz;
          -Ixz,  0,    Izz ];
 inv_I = inv(I_mat);
 
-% Motor Acisal Momentum Sabiti (NASA TP-1538 Ek B, s. 40)
+% Motor Açısal Momentum Sabiti
 He = 160.0 * slugft2_to_kgm2;    % ~216.93 kg*m^2/s
 
-% Baslangic Durum Vektoru
+% Baslangıç Durum Vektörü
 V_body_0 = [131.28; 0; 0];
 omega_0 = [0;0;0];
 Euler_0 = [0;0;0];
 Pos_0 = [0;0;-3048];
 
-%% 4. Tablo 1 Dogrulama Ucus Kosulu Sabitleri (0.4 Mach, 10000 ft)
+%% 5. Tablo 1 Doğrulama Uçuş Kosulu Sabitleri (0.4 Mach, 10000 ft)
 h_val_ft = 10000.0;
 h_val_m  = h_val_ft * ft2m;      % 3048 m
 Mach_val = 0.4;
 
-%% 5. Aerodinamik Tablo Kisayollari
-AeroData = f16_AerodynamicData.data;
-AeroBP   = f16_AerodynamicData.BP;
-
-% Veri duzeltmesi: ders verisinde Clp(alpha = 55 deg) = -1200 girilmis.
-% NASA TP-1538 Tablo III'te bu deger -0.12'dir (komsu degerler -0.10 / -0.14).
-iClp = AeroBP.Cl.Clp.alpha == 55;
-if AeroData.Cl.Clp(iClp) < -100
-    AeroData.Cl.Clp(iClp) = -0.12;
-    fprintf('init_F16: Clp(alpha=55) -1200 -> -0.12 olarak duzeltildi (TP-1538).\n');
-end
-
-% dh = 0 deg dilimleri
-CX_dh0 = AeroData.CX.CX(:,:,3);
-CZ_dh0 = AeroData.CZ.CZ(:,:,3);
-Cm_dh0 = AeroData.Cm.Cm(:,:,3);
-Cn_dh0 = AeroData.Cn.Cn(:,:,2);
-Cl_dh0 = AeroData.Cl.Cl(:,:,2);
-
-%% 6. Motor (Propulsion) Tablolari
+%% 6. Motor (Propulsion) Tabloları
 EngData = f16_EngineData.data.Thrust_lbs;
 EngBP   = f16_EngineData.BP;
 
-% Gaz kolu dislisi (NASA TP-1538 Fig. 66b): gaz kolu konumu [%] -> guc komutu P1 [%]
+% Gaz kolu Dişlisi (NASA TP-1538 Fig. 66b): gaz kolu konumu [%] -> güç komutu P1 [%]
 % %77 = military (P1 = 50), %100 = maximum (P1 = 100)
 thr_BP    = [0, 77, 100];
 P1_tab    = [0, 50, 100];
@@ -100,8 +97,8 @@ P1_tab    = [0, 50, 100];
 dP_BP        = [-100, 25, 50, 100];
 inv_tauT_tab = [1.0, 1.0, 0.1, 0.1];
 
-% Motor guc seviyesi P3 baslangic degeri [%] (Propulsion/Engine Dynamics integratoru).
-% Kararli hal icin gaz kolunun P1 degeri verilir; trimde guncellenir.
+% Motor güç seviyesi P3 baslangıç degeri [%] (Propulsion/Engine Dynamics integratörü).
+% Kararlı hal için gaz kolunun P1 degeri verilir; trimde güncellenir.
 P3_0 = 0;
 
-disp('F-16 SI Parametreleri ve NASA TP-1538 Veri Tablolari Basariyla Yuklendi.');
+disp('F-16 SI Parametreleri ve NASA TP-1538 Veri Tablolari Başarıyla Yüklendi.');
