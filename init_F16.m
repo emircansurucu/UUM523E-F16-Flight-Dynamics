@@ -101,4 +101,4 @@ inv_tauT_tab = [1.0, 1.0, 0.1, 0.1];
 % Kararlı hal için gaz kolunun P1 degeri verilir; trimde güncellenir.
 P3_0 = 0;
 
-disp('F-16 SI Parametreleri ve NASA TP-1538 Veri Tablolari Başarıyla Yüklendi.');
+disp('F-16 SI Parametreleri ve NASA TP-1538 Veri Tabloları Başarıyla Yüklendi.');
