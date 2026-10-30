@@ -9,26 +9,27 @@ Bu çalışmada F-16'nın doğrusal olmayan, 6 serbestlik dereceli (6-DOF) plant
 
 Aerodinamik model ve motor modeli NASA TP-1538'e (Nguyen vd., 1979) dayanıyor. Standart atmosfer modeli Stevens, Lewis ve Johnson'ın *Aircraft Control and Simulation* kitabının Ek A.6'sından alındı ve İngiliz birim sisteminden SI'ya çevrildi. Aerodinamik ve motor verisi olarak dersin verdiği `f16_AerodynamicData.mat` ve `f16_EngineData.mat` dosyaları, kendi breakpoint'leriyle birlikte kullanıldı. Modelin içindeki bütün hesaplar SI birimlerinde yapılıyor; veri tablolarının İngiliz birimindeki girdi/çıktıları (irtifa ft, itki lbf) blokların içinde dönüştürülüyor.
 
-Ödevin sonuçları (Tablo 1, Tablo 2 ve Problem 2) modelin alt sistemleri tek başına çalıştırılarak elde edildi. Bu işi `run_HW1.m` scripti yapıyor ve ödevin istediği `HW1_Group2.mat` dosyasını ve Problem 2 grafiklerini üretiyor.
+Ödevin sonuçları (Tablo 1, Tablo 2 ve Problem 2) modelin alt sistemleri tek başına çalıştırılarak elde edildi. Bu işi `run_HW1.m` scripti yapıyor ve ödevin istediği `HW1_Group2.mat` dosyasını ve Problem 2 grafiklerini üretiyor. Altı alt sistemin birlikte çalıştığını göstermek için script, modelin tamamıyla 6 saniyelik bir serbest yanıt simülasyonu da yapıyor. Ayrıntılı anlatım ve yorumlar raporda (`HW1_Report_Group2_eng.pdf`).
 
 ## Dosyalar
 
 | Dosya / klasör | İçerik |
 |---|---|
-| `F16_6DOF.slx` | Simulink plant modeli. Kökte 6 alt sistem, LEF tarifesi ve toplam kuvvet bloğu var. Her bölümün denklemi modelin içinde, ilgili blokların yanında yazılı. |
+| `HW1_Report_Group2_eng.pdf` | Rapor (depoda `homework/` klasöründe) |
+| `F16_6DOF.slx` | Simulink plant modeli, **R2023a** formatında kayıtlı. Kökte 6 alt sistem, LEF tarifesi ve toplam kuvvet bloğu var. Her bölümün denklemi modelin içinde, ilgili blokların yanında yazılı. |
 | `init_F16.m` | Modelin kullandığı bütün veri, sabit ve başlangıç koşullarını MATLAB çalışma alanına yükler. Model bu değişkenler olmadan çalışmaz. |
-| `run_HW1.m` | Ödevin bütün sonuçlarını üretir: Tablo 1, Tablo 2, sonuç dosyası ve Problem 2 grafikleri. |
+| `run_HW1.m` | Ödevin bütün sonuçlarını üretir: Tablo 1, Tablo 2, sonuç dosyası, Problem 2 grafikleri ve tam model simülasyonu. |
 | `test_aero_table1.m` | Aerodynamics alt sistemini Tablo 1'in 10 durumunda çalıştırır ve sonuçları referans değerlerle karşılaştırır. |
 | `test_thrust_table2.m` | Propulsion alt sistemini Tablo 2'nin 5 durumunda çalıştırır ve sonuçları referans değerlerle karşılaştırır. |
 | `HW1_Group2.mat` | Sonuç dosyası. Yalnızca `AeroResults` (10×12) ve `ThrustResults` (5×1) değişkenlerini içerir. |
-| `figures/` | Problem 2 grafikleri: `P2a_CL_CD.png`, `P2b_Cm.png`, `P2b_Cm_alpha.png` |
+| `figures/` | Grafikler: `P2a_CL_CD.png`, `P2b_Cm.png`, `P2b_Cm_alpha.png`, `P1_FullModel.png` |
 | `data/` | Dersin orijinal veri dosyaları. Hiç değiştirilmedi; gerekli düzeltmeler yalnızca bellekte yapılıyor. |
-| `Resources/` | NASA TP-1538 ve ilgili kaynak PDF'ler |
-| `reference/` | Karşılaştırma için kullanılan açık kaynaklı F-16 modeli (teslimin parçası değil) |
+
+GitHub deposunda ayrıca kaynak PDF'ler (`Resources/`) ve karşılaştırma için kullanılan açık kaynaklı bir F-16 modeli (`reference/`) bulunuyor. Bunlar teslim paketine dahil değil ve kodun çalışması için gerekmiyor.
 
 ## Çalıştırma
 
-Gereksinim: MATLAB ve Simulink. Başka bir toolbox gerekmiyor.
+Gereksinim: MATLAB ve Simulink, R2023a veya daha yeni bir sürüm. Başka bir toolbox gerekmiyor.
 
 1. MATLAB'da bu klasörü açın (Current Folder).
 2. Komut penceresine `run_HW1` yazın.
@@ -42,6 +43,7 @@ Script sırasıyla şunları yapar:
 5. `HW1_Group2.mat` dosyasını kaydeder.
 6. Problem 2a için C_L ve C_D grafiklerini çizer.
 7. Problem 2b için C_m,t ve C_m,tα grafiklerini çizer ve her β için C_m,tα > 0 olan α aralıklarını ekrana yazar.
+8. Modelin tamamını 6 saniye çalıştırır (kumandalar ve gaz kolu sıfır), `P1_FullModel.png` grafiğini çizer ve t = 0, 3, 6 s değerlerini ekrana yazar.
 
 Her α taraması tek bir simülasyonla yapıldığı için script kısa sürede biter. `F16_6DOF.slx` bu sırada değiştirilmez; hesaplar için açılan geçici test modelleri iş bitince kapatılır.
 
@@ -416,11 +418,11 @@ C_D = −C_X cosα cosβ − C_Y sinβ − C_Z sinα cosβ
 
 ![C_L ve C_D](figures/P2a_CL_CD.png)
 
-- **Temel durum (i).** C_L, α ile neredeyse doğrusal artıyor ve en yüksek değerine (yaklaşık 1.72) α = 35–40° civarında ulaşıyor. Bu noktadan sonra stall nedeniyle düşüyor ve α = 90°'de sıfıra yaklaşıyor. C_D en küçük değerini α ≈ 0°'da alıyor; α arttıkça hızla büyüyerek α = 90°'de 2.2'ye ulaşıyor.
-- **Hava freni (ii, δsb = 60°).** Düşük α'da kaldırmayı artırıyor; α = 0°'da C_L yaklaşık 0.45 daha büyük. Ancak C_L'nin en yüksek değeri 1.5–1.6'ya düşüyor. α 5°'yi geçince sürükleme tabandan belirgin şekilde büyük. Hava freninin asıl amacı da sürüklemeyi artırmak.
-- **Hücum kenarı flapı (iii, δlef = 25°).** C_L'nin en yüksek değerini yaklaşık 1.9'a çıkarıyor. Flap kanadın ön kenarında akışın ayrılmasını geciktirdiği için yüksek α'da daha fazla kaldırma elde ediliyor.
-- **Yanal kayma (iv, β = 15°).** C_L'nin en yüksek değeri yaklaşık 1.57'ye düşüyor. α ≈ 0°'da C_D tabandan büyük; bunun bir kısmı C_Y sinβ teriminden geliyor. α 35°'yi geçince C_D tabandan küçük.
-- **Stabilatör (v, δh = −25°).** Stabilatörün negatif açısı kuyrukta aşağı yönde kuvvet üretiyor. Bu yüzden α 45°'nin altındayken C_L tabandan küçük. C_D negatif α'da büyük, yüksek α'da küçük.
+- **Temel durum (i).** C_L, α ile neredeyse doğrusal artıyor ve en yüksek değerine (yaklaşık 1.72) α ≈ 35°'de ulaşıyor. Bu noktadan sonra stall nedeniyle düşüyor ve α = 90°'de sıfıra yaklaşıyor. C_D en küçük değerini α ≈ 0°'da alıyor (yaklaşık 0.020); α arttıkça hızla büyüyerek α = 90°'de 2.2'ye ulaşıyor.
+- **Hava freni (ii, δsb = 60°).** Düşük α'da kaldırmayı artırıyor; α = 0°'da C_L 0.10'dan 0.49'a çıkıyor. Ancak C_L'nin en yüksek değeri 1.59'a düşüyor. Sürükleme artıyor; α = 20°'de C_D yaklaşık 0.24 daha büyük. Hava freninin asıl amacı da sürüklemeyi artırmak.
+- **Hücum kenarı flapı (iii, δlef = 25°).** C_L'nin en yüksek değerini yaklaşık 1.89'a çıkarıyor. Flap kanadın ön kenarında akışın ayrılmasını geciktirdiği için yüksek α'da daha fazla kaldırma elde ediliyor. α = 20°'de sürükleme azalıyor, düşük α'da biraz artıyor.
+- **Yanal kayma (iv, β = 15°).** C_L'nin en yüksek değeri yaklaşık 1.57'ye düşüyor. C_D düşük α'da tabandan büyük (α = 0°'da +0.076); bunun bir kısmı C_Y sinβ teriminden geliyor. Yüksek α'da tabandan küçük.
+- **Stabilatör (v, δh = −25°).** Stabilatörün negatif açısı kuyrukta aşağı yönde kuvvet üretiyor. Bu yüzden α 45°'nin altındayken C_L tabandan küçük (α = 0°'da −0.18) ve en yüksek değeri 1.50'ye düşüyor. C_D negatif α'da büyük, yüksek α'da küçük.
 
 Grafiklerdeki 45° çizgisi LEF tablolarının bittiği noktayı gösterir (bkz. Veri notları).
 
@@ -454,10 +456,18 @@ C_m,tα < 0 olduğunda α artınca burnu aşağı indiren bir moment oluşur ve 
 - **β'nın etkisi.** |β| ≤ 10° için eğriler birbirine yakın ve kararsız bölgeler büyük ölçüde aynı. |β| = 15°'de düşük α'daki kararsız bölge ikiye bölünüyor. |β| = 30°'de düşük α'daki kararsızlık ortadan kalkıyor, ama yüksek α'daki kararsızlık daha erken, α = 25° civarında başlıyor. Yani büyük yanal kaymada uçak düşük α'da daha kararlı, orta α'da daha kararsız.
 - **β = −6° eğrisi.** α = 20–30° arasındaki çukur ve C_m,tα'daki sıçrama, tablodaki tek bir veri noktasından geliyor (bkz. Veri notları); aerodinamik bir etki değil. β = +6°'daki simetrik eğride bu çukur yok.
 
+### Tam model: serbest yanıt
+
+Modelin tamamı 6 saniye çalıştırıldı. Kumandalar sıfır, gaz kolu %0; başlangıç koşulu V_T = 131.28 m/s, α = θ = 0, h = 3048 m. Model trimli olmadığı için amaç bir uçuş koşulunu doğrulamak değil, altı alt sistemin birlikte sayısal sorun çıkarmadan çalıştığını ve fiziksel olarak beklenen yönde tepki verdiğini göstermek.
+
+![Tam model](figures/P1_FullModel.png)
+
+Kumandalar sıfırken yunuslama momenti burun aşağı yönde olduğu için uçak burnunu indiriyor. Uçak küçük α'da statik olarak kararsız olduğundan hareket sönmek yerine büyüyor: t = 6 s'de θ yaklaşık −64°, α yaklaşık −24° ve irtifa kaybı yaklaşık 175 m. Simülasyon, θ'nın −90°'ye ulaştığı ve Euler açılarının tekil olduğu t ≈ 7 s'den önce bitiyor.
+
 ## Veri notları
 
 - **C_lp, α = 55°.** Ders verisinde −1200 yazıyor. TP-1538 Tablo III'te bu değer −0.12; komşu değerler −0.10 ve −0.14. Bu açıkça bir yazım hatası. `init_F16` değeri bellekte −0.12 olarak düzeltiyor ve ekrana bir not yazıyor; veri dosyası değiştirilmedi. Tablo 1'deki durumlar α = 55°'yi kullanmadığı için sonuçları etkilemiyor.
-- **C_m,lef, α = 25°, β = −6°.** Değer −0.1607. Komşu noktalar −0.0648 (β = −8°) ve −0.0558 (β = −4°), β = +6°'daki simetrik karşılığı −0.0530. Aynı değer TP-1538 Tablo III'te de bulunuyor; yani ders verisi orijinali doğru aktarmış, ama değer büyük olasılıkla orijinal rapordaki bir baskı hatası. Ödev verilen verinin kullanılmasını istediği için değer olduğu gibi bırakıldı. Yalnızca Problem 2b'deki β = −6° eğrisini etkiliyor.
+- **C_m,lef, α = 25°, β = −6°.** Değer −0.1607. Komşu noktalar −0.0648 (β = −8°) ve −0.0558 (β = −4°), β = +6°'daki simetrik karşılığı −0.0530. Aynı değer TP-1538 Tablo III'te de bulunuyor (s. 64); yani ders verisi orijinali doğru aktarmış, ama değer büyük olasılıkla orijinal rapordaki bir baskı hatası. Ödev verilen verinin kullanılmasını istediği için değer olduğu gibi bırakıldı. Yalnızca Problem 2b'deki β = −6° eğrisini etkiliyor.
 - **LEF tablolarının aralığı.** LEF tabloları (`*lef`, `delta*lef`) yalnızca α = −20…45° aralığında tanımlı; ana tablolar −20…90°'yi kapsıyor. 45°'nin üstünde lookup'lar sınır değerini kullandığı için LEF katkısı 45°'deki değerinde sabit kalıyor. Bu, verinin bir sınırı ve grafiklerde 45° çizgisiyle işaretlendi.
 
 ## Kabuller
@@ -475,4 +485,4 @@ C_m,tα < 0 olduğunda α artınca burnu aşağı indiren bir moment oluşur ve 
 - L. T. Nguyen, M. E. Ogburn, W. P. Gilbert, K. S. Kibler, P. W. Brown, P. L. Deal, *Simulator Study of Stall/Post-Stall Characteristics of a Fighter Airplane With Relaxed Longitudinal Static Stability*, NASA TP-1538, 1979.
 - B. L. Stevens, F. L. Lewis, E. N. Johnson, *Aircraft Control and Simulation: Dynamics, Controls Design, and Autonomous Systems*, 3. baskı, Wiley, 2016.
 
-`reference/bhattacharya-f16/` klasöründeki karşılaştırma modeli © 2023 Raktim Bhattacharya, MIT Lisansı (`LICENSE`).
+Depodaki `reference/bhattacharya-f16/` karşılaştırma modeli © 2023 Raktim Bhattacharya, MIT Lisansı.

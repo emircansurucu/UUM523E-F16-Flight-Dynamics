@@ -53,7 +53,6 @@ close_system(tm, 0);
 %% Bagimsiz referans
 %  Hocanin motor verisi + TP-1538 Fig. 66 (disli 0/77/100 -> 0/50/100,
 %  idle-mil-max ara degerleme) ile ayrica (Python) hesaplandi.
-%  2023a klasorundeki HW1_Group1.mat ile ayni.
 ref = [7.8918029517e+03; 2.6867260880e+04; 2.4059659194e+04; 9.0493253463e+03; 1.0717845909e+04];
 
 %% Rapor

@@ -87,8 +87,7 @@ close_system(tm, 0);
 
 %% Bagimsiz referans
 %  Hocanin verisi + TP-1538 Ek B ve HW-1 Cm,t formulleriyle ayrica (Python,
-%  scipy) hesaplandi; Clp(55) = -0.12 duzeltmesi dahil. Bu referans
-%  2023a klasorundeki HW1_Group1.mat ile 1e-11 duzeyinde ayni.
+%  scipy) hesaplandi; Clp(55) = -0.12 duzeltmesi dahil.
 ref = [
   -2.0200000000e-02  0.0000000000e+00 -1.0000000000e-01  0.0000000000e+00 -7.7000000000e-03  0.0000000000e+00 -4.3948999594e+03  0.0000000000e+00 -2.1756930492e+04  0.0000000000e+00 -5.7802914806e+03  0.0000000000e+00;
   -3.0300000000e-02  0.0000000000e+00 -4.8580000000e-01  0.0000000000e+00 -1.1100000000e-02  0.0000000000e+00 -6.5923499391e+03  0.0000000000e+00 -1.0569516833e+05  0.0000000000e+00 -8.3326279785e+03  0.0000000000e+00;
