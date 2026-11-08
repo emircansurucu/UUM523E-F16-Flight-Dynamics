@@ -3,6 +3,8 @@
 UUM523E Advanced Flight Dynamics, İTÜ, Güz 2026 — Grup 2
 Dilan Gelturan, Emirhan Oskay, Emircan Sürücü, Berat Alku
 
+HW-2 (trim ve doğrusallaştırma) en sondaki [HW-2](#hw-2-trim-ve-doğrusallaştırma) bölümünde.
+
 ## Genel tanım
 
 Bu çalışmada F-16'nın doğrusal olmayan, 6 serbestlik dereceli (6-DOF) plant modeli Simulink'te kuruldu. Model, ödevin istediği altı alt sistemden oluşuyor: Aerodynamics, Propulsion, Atmosphere, Mass & Inertia, Actuators ve Equations of Motion. Bunlara ek olarak kök seviyede hücum kenarı flapı tarifesi (LEF schedule) ve toplam kuvvet toplayıcısı bulunuyor. Modelin hiçbir yerinde Aerospace Blockset bloğu kullanılmadı; her alt sistem temel Simulink bloklarıyla (lookup table, gain, sum, product, integrator, saturation, switch) kuruldu.
@@ -59,7 +61,7 @@ Modelin tamamını çalıştırmak için önce `init_F16`, sonra `sim('F16_6DOF'
 | `dsb_cmd` | Hava freni komutu | deg |
 | `throttle` | Gaz kolu konumu | % |
 
-Bu girişlere bir sinyal bağlanmazsa sıfır kabul edilir. Model trimli değildir: başlangıç koşulu 3048 m irtifada, gövde ekseninde 131.28 m/s ileri hızla düz uçuştur ve kumandalar sıfırdır. Trim ve doğrusallaştırma HW-2'nin konusu.
+Bu girişlere bir sinyal bağlanmazsa sıfır kabul edilir. Model trimli değildir: başlangıç koşulu 3048 m irtifada, gövde ekseninde 131.28 m/s ileri hızla düz uçuştur ve kumandalar sıfırdır. Trim ve doğrusallaştırma için bkz. [HW-2](#hw-2-trim-ve-doğrusallaştırma).
 
 ## Model yapısı
 
@@ -479,6 +481,98 @@ Kumandalar sıfırken yunuslama momenti burun aşağı yönde olduğu için uça
 - **Problem 2.** Açısal hızlar sıfır, uçuş koşulu Tablo 1 ile aynı (0.4 Mach, 10 000 ft). C_L ve C_D gövde eksenindeki katsayılardan rüzgâr eksenine dönüşümle bulunuyor. C_m,tα, 0.5° aralıklı C_m,t değerlerinden sayısal türevle (1/deg) hesaplanıyor.
 - **Motor.** İtki gövde x ekseni boyunca etki ediyor; itkinin ağırlık merkezine göre momenti yok. Motorun açısal momentumu H_e sabit alınıyor.
 - **Eyleyiciler.** Başlangıç açıları sıfır. Kumanda komutları önce konum sınırına kırpılıyor.
+
+## HW-2: Trim ve doğrusallaştırma
+
+HW-2'de HW-1 modeli trim edildi ve doğrusallaştırıldı. Bunun için yeni bir model kurulmadı. m-dosyaları HW-1 blok diyagramını (`F16_6DOF.slx`) Simulink'in model API'siyle çağırıyor: `F16_6DOF(0, x, u, 'derivs')`. Model dosyası değiştirilmiyor; sadece ağırlık merkezi (`xcg`, kökteki `Constant1`) çalışma alanında güncellenip model yeniden derleniyor. Böylece trim ve doğrusal modeller, HW-1'de doğrulanan aerodinamik, itki, atmosfer ve hareket denklemlerinden doğrudan geliyor.
+
+### Dosyalar
+
+| Dosya / klasör | İçerik |
+|---|---|
+| `F16_6DOF.slx` | HW-1 Simulink modeli (R2023a). HW-2'de değiştirilmeden kullanılıyor. |
+| `init_F16.m` | HW-1'deki gibi bütün veri ve sabitleri yükler. |
+| `run_HW2.m` | Ödevin bütün sonuçlarını üretir: 6 trim durumu, 3 noktada gövde ve rüzgâr ekseni modelleri, sonuç dosyası, doğrulama tabloları ve grafikler. |
+| `trim_F16.m` | `fmincon` (SQP) ile trim. Düz uçuş ve kararlı dönüş; γ, β, φ ve n_z isteğe bağlı verilir. |
+| `linearize_F16.m` | Merkezi farkla sayısal doğrusallaştırma; `'body'` [u w q θ v p r φ] ya da `'wind'` [V_T α q θ β p r φ]. |
+| `f16_eval.m` | Verilen durum ve kumandalardan modelin 18 elemanlı durum vektörünü kurar ve türevleri modelden okur. |
+| `f16_modelInit.m` | Modeli verilen ağırlık merkezi için derler ve durumların vektördeki yerini çıkarır. |
+| `HW2_Group2.mat` | Sonuç dosyası. Yalnızca `TrimResults` (6×15), `A_Body`, `A_Wind` (8×8×3), `B_Body`, `B_Wind` (8×4×3) değişkenlerini içerir. |
+| `figures/` | `HW2_LinVsNonlin_i.png`, `HW2_LinVsNonlin_iii.png` |
+
+### Çalıştırma
+
+Gereksinim: MATLAB ve Simulink R2023a veya daha yeni bir sürüm, ayrıca `fmincon` için Optimization Toolbox.
+
+1. MATLAB'da bu klasörü açın (Current Folder).
+2. Komut penceresine `run_HW2` yazın.
+
+Script sırasıyla şunları yapar:
+
+1. `init_F16`'yı çalıştırır, her trim durumu için V_T'yi ve q̄/p_s'yi atmosfer denklemlerinden hesaplar.
+2. Durum 1–5'i x_cg = 0.25c̄, Durum 6'yı 0.35c̄ ile trim eder ve `TrimResults`'ı ekrana yazar.
+3. i, ii ve iii koşullarında gövde ve rüzgâr ekseni A, B matrislerini hesaplar, ekrana yazar ve özdeğerleri verir.
+4. `HW2_Group2.mat` dosyasını kaydeder.
+5. Doğrulama tablolarını yazar ve doğrusal ile doğrusal olmayan yanıtın grafiklerini `figures/` klasörüne kaydeder.
+
+Toplam süre yaklaşık 1 dakika. `F16_6DOF.slx` bu sırada değiştirilmez.
+
+### Trim formülasyonu
+
+- **Karar değişkenleri:** z = [α, β, φ, θ, ψ̇, δT, δh, δa, δr]. V_T ve h uçuş koşulundan sabit. Verilen büyüklükler (β, φ ve düz uçuşta ψ̇ = 0) sınırlarla sabitlenir.
+- **Dönüş kinematiği:** p = −ψ̇ sinθ, q = ψ̇ sinφ cosθ, r = ψ̇ cosφ cosθ. Böylece φ̇ = θ̇ = 0 olur.
+- **Maliyet** (Stevens–Lewis–Johnson): J = V̇_T² + 100(α̇² + β̇²) + 10(ṗ² + q̇² + ṙ²).
+- **Eşitlik kısıtları:** uçuş yolu açısı sinγ = a sinθ − b cosθ. Durum 5'te ayrıca n_z = 4.
+- **n_z tanımı:** gövde −z eksenindeki (aero + itki) kuvvetin ağırlığa oranı, n_z = −(ẇ − qu + pv − g cosφ cosθ)/g.
+- **Kumandalar ve motor:** δlef her değerlendirmede statik LEF tarifesinden ([0, 25]°) alınır. Eyleyici durumları komuta, motor gücü P3 gaz kolunun kararlı gücüne yerleştirilir.
+
+### Trim sonuçları (açılar deg)
+
+| Durum | V_T [m/s] | α | θ | φ | δh | δr | δlef | δT [%] | n_z | ψ̇ [rad/s] |
+|:-:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1 | 196.92 | 1.683 | 1.683 | 0 | −2.327 | 0 | 1.490 | 24.45 | 1.000 | 0 |
+| 2 | 101.03 | 8.148 | 5.148 | 0 | −6.297 | 0 | 12.124 | 7.90 | 0.996 | 0 |
+| 3 | 168.38 | 1.986 | 11.986 | 0 | −2.550 | 0 | 2.606 | 41.43 | 0.978 | 0 |
+| 4 | 196.92 | 4.560 | 2.284 | 60 | −4.348 | −0.259 | 5.461 | 36.92 | 1.991 | 0.0861 |
+| 5 | 196.92 | 10.283 | 2.521 | 75.956 | −8.701 | −0.285 | 13.358 | 81.81 | 4.000 | 0.1962 |
+| 6 | 196.92 | 1.432 | 1.432 | 0 | −0.518 | 0 | 1.144 | 22.56 | 1.000 | 0 |
+
+Durum 1–5'te c.g. 0.25c̄, Durum 6'da 0.35c̄. Bütün durumlarda J < 2·10⁻¹¹.
+
+### Doğrusallaştırma
+
+- Her durum ve giriş ayrı ayrı ±adım kadar oynatılır, türevler modelden okunur.
+- 8 durumlu modelde eyleyici ve motor dinamiği yoktur. δlef trim değerinde sabit tutulur. h ve ψ modele girmez.
+- Birimler: yüzeyler rad, δT %.
+- Adımlar fiziksel ölçeklidir: açılarda 10⁻⁴ rad, hızlarda V_T·10⁻⁴. Aero tablolarının çift fonksiyon kısımlarında (C_X, C_Z, C_m) β = 0'da kırılma var. Adım trimdeki sayısal β artığından (~10⁻⁷ rad) çok küçük olursa merkezi fark tek taraflı türev verir.
+
+Koşullar: i = Durum 1, ii = Durum 4, iii = Durum 6. Gövde ekseni A matrisinin özdeğerleri:
+
+| Mod | i (0.25c̄, düz) | ii (0.25c̄, φ = 60°) | iii (0.35c̄, düz) |
+|---|---|---|---|
+| Kısa periyot | −1.311 ± 2.166j | −1.335 ± 2.253j | **+0.787**, −2.813 (gerçel) |
+| Fugoid | −0.0079 ± 0.0624j | −0.0115 ± 0.0522j | −0.0106 ± 0.0874j |
+| Hollanda yuvarlanması | −0.411 ± 3.416j | −0.504 ± 3.658j | −0.380 ± 3.096j |
+| Yuvarlanma | −3.427 | −3.153 | −3.464 |
+| Spiral | −0.0113 | −0.0080 | −0.0131 |
+
+Tablodaki değerler boylamsal (A11) ve yanal (A22) bloklardan. i ve iii'de iki hareket birbirinden ayrık, bu yüzden tam 8×8 matrisin özdeğerleri de aynı. ii'de (φ = 60°) boylamsal ve yanal hareket birbirine bağlı; tam 8×8 özdeğerler `run_HW2` çıktısında.
+
+- **Ağırlık merkezinin etkisi (i → iii).** x_cg 0.25c̄'den 0.35c̄'ye kayınca q̇ satırındaki w (α) türevinin işareti değişiyor (−0.026 → +0.018): uçak statik olarak kararsız hale geliyor. Kısa periyot salınımı iki gerçel köke ayrılıyor, biri pozitif (+0.787 1/s, genliğin iki katına çıkma süresi yaklaşık 0.9 s). Yanal modlar neredeyse değişmiyor.
+- **Dönüşün etkisi (i → ii).** φ = 60°'de p, q, r sıfır değil. Bu yüzden A'nın boylamsal ve yanal blokları arasında terimler oluşuyor (ör. ẇ'de φ, θ̇'da r ve φ), iki hareket birbirine bağlanıyor. α ve dolayısıyla δlef daha büyük olduğu için türevler de biraz değişiyor.
+
+### Doğrulama
+
+- **Trim artıkları.** Trimde modelin bütün türevleri (konum ve ψ hariç; eyleyici, motor ve LEF filtresi dahil) sıfır. Bu, m-dosyasındaki LEF tarifesi ve gaz dişlisinin blok diyagramla tutarlı olduğunu da gösteriyor. En büyük değerler: |u̇, v̇, ẇ| < 7·10⁻⁵ m/s², |ṗ, q̇, ṙ| < 7·10⁻⁷ rad/s².
+- **Gövde/rüzgâr tutarlılığı.** İki model aynı sistemi anlatmalı: A_W = T A_B T⁻¹ ve B_W = T B_B (T, [V_T α β]'nın [u v w]'ye göre Jacobian'ı). Bağıl fark < 5·10⁻⁶.
+- **Tam model benzetimi.** Trimden başlayan 10 s'lik benzetimde (kumandalar sabit) ölçülen γ ve ψ̇ hedefle aynı: −2.9996° / −3°, 9.9987° / 10°, ψ̇ altı basamakta aynı. Uzun sürede tırmanış ve alçalışta V_T'nin kayması fiziksel bir sonuç: irtifa ve dolayısıyla yoğunluk değişiyor.
+- **Doğrusal ve doğrusal olmayan yanıt.** Koşul i'de α, q, θ ve bütün yanal kanallar örtüşüyor. ΔV_T'deki fark iki şeyden geliyor: doğrusal modelde δlef sabit, tam modelde ise tarifeyle α'yı izliyor; ayrıca doğrusal modelde irtifa durumu yok.
+
+![Koşul i](figures/HW2_LinVsNonlin_i.png)
+
+- **Koşul iii ve LEF tarifesinin etkisi.** Doğrusal model +0.787 1/s kökü yüzünden ıraksıyor, tam model ise sönümleniyor. `run_HW2` bunu ayrıca kontrol ediyor: eyleyici, motor ve LEF durumlarını da içeren tam model doğrusallaştırılınca bu kök −2.18'e kayıyor ve geriye çok yavaş bir +0.044 kök kalıyor. LEF durumları dondurulunca +0.788 geri geliyor. Yani otomatik LEF tarifesi, (2s + 7.25)/(s + 7.25) filtresi üzerinden α'ya geri besleme yaparak 0.35c̄'deki gevşek statik kararlılığı büyük ölçüde telafi ediyor. Ödevin tanımladığı 8 durumlu modelde δlef sabit olduğu için bu etki görünmüyor.
+
+![Koşul iii](figures/HW2_LinVsNonlin_iii.png)
 
 ## Kaynaklar
 
