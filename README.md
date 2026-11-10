@@ -546,20 +546,20 @@ Durum 1–5'te c.g. 0.25c̄, Durum 6'da 0.35c̄. Bütün durumlarda J < 2·10⁻
 - Birimler: yüzeyler rad, δT %.
 - Adımlar fiziksel ölçeklidir: açılarda 10⁻⁴ rad, hızlarda V_T·10⁻⁴. Aero tablolarının çift fonksiyon kısımlarında (C_X, C_Z, C_m) β = 0'da kırılma var. Adım trimdeki sayısal β artığından (~10⁻⁷ rad) çok küçük olursa merkezi fark tek taraflı türev verir.
 
-Koşullar: i = Durum 1, ii = Durum 4, iii = Durum 6. Gövde ekseni A matrisinin özdeğerleri:
+Koşullar: i = Durum 1, ii = Durum 4, iii = Durum 6. Gövde ekseni A matrisinin (tam 8×8) özdeğerleri:
 
 | Mod | i (0.25c̄, düz) | ii (0.25c̄, φ = 60°) | iii (0.35c̄, düz) |
 |---|---|---|---|
-| Kısa periyot | −1.311 ± 2.166j | −1.335 ± 2.253j | **+0.787**, −2.813 (gerçel) |
-| Fugoid | −0.0079 ± 0.0624j | −0.0115 ± 0.0522j | −0.0106 ± 0.0874j |
-| Hollanda yuvarlanması | −0.411 ± 3.416j | −0.504 ± 3.658j | −0.380 ± 3.096j |
-| Yuvarlanma | −3.427 | −3.153 | −3.464 |
-| Spiral | −0.0113 | −0.0080 | −0.0131 |
+| Kısa periyot | −1.311 ± 2.166j | −1.336 ± 2.253j | **+0.787**, −2.813 (gerçel) |
+| Fugoid | −0.0079 ± 0.0624j | −0.0106 ± 0.1093j (fugoid–spiral, bağlı) | −0.0106 ± 0.0874j |
+| Hollanda yuvarlanması | −0.411 ± 3.416j | −0.505 ± 3.658j | −0.380 ± 3.096j |
+| Yuvarlanma | −3.427 | −3.152 | −3.464 |
+| Spiral | −0.0113 | −0.0086 (fugoid–spiral, bağlı) | −0.0131 |
 
-Tablodaki değerler boylamsal (A11) ve yanal (A22) bloklardan. i ve iii'de iki hareket birbirinden ayrık, bu yüzden tam 8×8 matrisin özdeğerleri de aynı. ii'de (φ = 60°) boylamsal ve yanal hareket birbirine bağlı; tam 8×8 özdeğerler `run_HW2` çıktısında.
+i ve iii'de boylamsal ve yanal hareket birbirinden ayrık: A'nın çapraz blokları (A12, A21) pratikte sıfır (en büyük eleman 0.003), bu yüzden blok (A11, A22) ve tam 8×8 özdeğerler aynı. ii'de (φ = 60°) çapraz bloklar büyük: örneğin ẇ'nin φ'ye türevi −g sinφ cosθ ≈ −8.49. Bu durumda bloklar ayrı ayrı doğru sonuç vermez; tablodaki ii değerleri tam 8×8 matristen. Hızlı modlar (kısa periyot, yuvarlanma, Hollanda yuvarlanması) bu bağlantıdan pek etkilenmiyor. Yavaş modlar ise birbirine karışıyor: özvektörlere göre ii'deki salınımlı yavaş mod u, θ ve φ'yi birlikte içeriyor (fugoid ile spiralin bağlı hâli). Blok hesabı bu modu −0.0115 ± 0.0522j (periyot ≈ 120 s) gösterirdi; doğrusu −0.0106 ± 0.1093j (periyot ≈ 57 s).
 
 - **Ağırlık merkezinin etkisi (i → iii).** x_cg 0.25c̄'den 0.35c̄'ye kayınca q̇ satırındaki w (α) türevinin işareti değişiyor (−0.026 → +0.018): uçak statik olarak kararsız hale geliyor. Kısa periyot salınımı iki gerçel köke ayrılıyor, biri pozitif (+0.787 1/s, genliğin iki katına çıkma süresi yaklaşık 0.9 s). Yanal modlar neredeyse değişmiyor.
-- **Dönüşün etkisi (i → ii).** φ = 60°'de p, q, r sıfır değil. Bu yüzden A'nın boylamsal ve yanal blokları arasında terimler oluşuyor (ör. ẇ'de φ, θ̇'da r ve φ), iki hareket birbirine bağlanıyor. α ve dolayısıyla δlef daha büyük olduğu için türevler de biraz değişiyor.
+- **Dönüşün etkisi (i → ii).** φ = 60°'de p, q, r sıfır değil ve yerçekimi gövdeye yatık açıyla etki ediyor. Bu yüzden A'nın boylamsal ve yanal blokları arasında büyük terimler oluşuyor (ör. ẇ'de φ: −8.49, θ̇'da r: −sinφ = −0.866), iki hareket birbirine bağlanıyor. Hızlı modlar az değişirken fugoid ve spiral birbirine karışıyor; yavaş salınımın periyodu düz uçuştaki ≈ 101 s'den ≈ 57 s'ye iniyor. α ve dolayısıyla δlef daha büyük olduğu için türevler de biraz değişiyor.
 
 ### Doğrulama
 
