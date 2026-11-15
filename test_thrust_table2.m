@@ -33,6 +33,19 @@ for k = 1:3
     ph = get_param(blk, 'PortHandles');
     add_line(tm, ph.Outport(1), ah.Inport(k));
 end
+% omega_body girişi (jiroskopik moment) sıfır, moment çıkışı sonlandırılır; itkiyi etkilemez
+for k = 4:numel(ah.Inport)
+    blk = add_block('simulink/Sources/Constant', sprintf('%s/zero%d', tm, k), ...
+            'Value', 'zeros(3,1)', 'Position', [120 40+50*k 200 60+50*k]);
+    ph = get_param(blk, 'PortHandles');
+    add_line(tm, ph.Outport(1), ah.Inport(k));
+end
+for k = 2:numel(ah.Outport)
+    blk = add_block('simulink/Sinks/Terminator', sprintf('%s/term%d', tm, k), ...
+            'Position', [500 115+40*k 520 135+40*k]);
+    ph = get_param(blk, 'PortHandles');
+    add_line(tm, ah.Outport(k), ph.Inport(1));
+end
 ob = add_block('simulink/Sinks/Out1', [tm '/y'], 'Position', [500 115 530 129]);
 oph = get_param(ob, 'PortHandles');
 add_line(tm, ah.Outport(1), oph.Inport(1));

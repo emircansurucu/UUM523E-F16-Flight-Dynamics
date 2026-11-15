@@ -17,10 +17,10 @@ M.idx.uvw   = yer('Equations of Motion/Integrator');      % [u v w] m/s
 M.idx.pqr   = yer('Equations of Motion/Integrator1');     % [p q r] rad/s
 M.idx.euler = yer('Equations of Motion/Integrator2');     % [phi theta psi] rad
 M.idx.pos   = yer('Equations of Motion/Integrator3');     % [x y z] NED, m
-M.idx.dh    = yer('Actuators/Integrator');                % deg
-M.idx.da    = yer('Actuators/Integrator1');               % deg
-M.idx.dr    = yer('Actuators/Integrator2');               % deg
-M.idx.dlef  = yer('Actuators/Integrator3');               % deg
+M.idx.dh    = yer('Actuators/dh Actuator/Integrator');    % deg
+M.idx.da    = yer('Actuators/da Actuator/Integrator');    % deg
+M.idx.dr    = yer('Actuators/dr Actuator/Integrator');    % deg
+M.idx.dlef  = yer('Actuators/dlef Actuator/Integrator');  % deg
 M.idx.lefTF = yer('Transfer Fcn');                        % LEF ön-geri filtresi
 M.idx.P3    = yer('Propulsion/Engine Dynamics/P3_int');   % motor gücü, %
 M.nx  = numel(str);
@@ -29,7 +29,10 @@ M.xcg = xcg;
 % Gaz dişlisi ve yerçekimi (init_F16'daki değerler)
 M.thr_BP = evalin('base', 'thr_BP');
 M.P1_tab = evalin('base', 'P1_tab');
-M.g      = evalin('base', 'g');
+M.g      = evalin('base', 'g');       % deniz seviyesi (ilk tahminler)
+M.g0     = evalin('base', 'g0');
+M.Re     = evalin('base', 'Re_SI');
+M.gh     = @(h) M.g0*(M.Re./(M.Re + h)).^2;   % modeldeki g(h) (Atmosphere)
 
 F16_6DOF([], [], [], 'compile');
 end

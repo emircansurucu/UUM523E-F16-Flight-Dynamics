@@ -7,7 +7,7 @@ HW-2 (trim ve doğrusallaştırma) en sondaki [HW-2](#hw-2-trim-ve-doğrusallaş
 
 ## Genel tanım
 
-Bu çalışmada F-16'nın doğrusal olmayan, 6 serbestlik dereceli (6-DOF) plant modeli Simulink'te kuruldu. Model, ödevin istediği altı alt sistemden oluşuyor: Aerodynamics, Propulsion, Atmosphere, Mass & Inertia, Actuators ve Equations of Motion. Bunlara ek olarak kök seviyede hücum kenarı flapı tarifesi (LEF schedule) ve toplam kuvvet toplayıcısı bulunuyor. Modelin hiçbir yerinde Aerospace Blockset bloğu kullanılmadı; her alt sistem temel Simulink bloklarıyla (lookup table, gain, sum, product, integrator, saturation, switch) kuruldu.
+Bu çalışmada F-16'nın doğrusal olmayan, 6 serbestlik dereceli (6-DOF) plant modeli Simulink'te kuruldu. Model, ödevin istediği altı alt sistemden oluşuyor: Aerodynamics, Propulsion, Atmosphere, Mass & Inertia, Actuators ve Equations of Motion. Bunlara ek olarak kök seviyede hücum kenarı flapı tarifesi (LEF schedule) bulunuyor. Aerodynamics, Propulsion ve Mass & Inertia kendi kuvvet ve momentlerini veriyor; bunlar Equations of Motion içinde toplanıyor. Model, HW-1 geri bildiriminden sonra düzeltildi (bkz. [HW-1 geri bildirimi sonrası düzeltmeler](#hw-1-geri-bildirimi-sonrası-düzeltmeler)). Modelin hiçbir yerinde Aerospace Blockset bloğu kullanılmadı; her alt sistem temel Simulink bloklarıyla (lookup table, gain, sum, product, integrator, saturation, switch) kuruldu.
 
 Aerodinamik model ve motor modeli NASA TP-1538'e (Nguyen vd., 1979) dayanıyor. Standart atmosfer modeli Stevens, Lewis ve Johnson'ın *Aircraft Control and Simulation* kitabının Ek A.6'sından alındı ve İngiliz birim sisteminden SI'ya çevrildi. Aerodinamik ve motor verisi olarak dersin verdiği `f16_AerodynamicData.mat` ve `f16_EngineData.mat` dosyaları, kendi breakpoint'leriyle birlikte kullanıldı. Modelin içindeki bütün hesaplar SI birimlerinde yapılıyor; veri tablolarının İngiliz birimindeki girdi/çıktıları (irtifa ft, itki lbf) blokların içinde dönüştürülüyor.
 
@@ -18,7 +18,7 @@ Aerodinamik model ve motor modeli NASA TP-1538'e (Nguyen vd., 1979) dayanıyor. 
 | Dosya / klasör | İçerik |
 |---|---|
 | `HW1_Report_Group2_eng.pdf` | Rapor (depoda `homework/` klasöründe) |
-| `F16_6DOF.slx` | Simulink plant modeli, **R2023a** formatında kayıtlı. Kökte 6 alt sistem, LEF tarifesi ve toplam kuvvet bloğu var. Her bölümün denklemi modelin içinde, ilgili blokların yanında yazılı. |
+| `F16_6DOF.slx` | Simulink plant modeli, **R2023a** formatında kayıtlı. Kökte 6 alt sistem ve LEF tarifesi var. `F16_6DOF_R2024b.slx` aynı modelin R2024b kopyası. Her bölümün denklemi modelin içinde, ilgili blokların yanında yazılı. |
 | `init_F16.m` | Modelin kullandığı bütün veri, sabit ve başlangıç koşullarını MATLAB çalışma alanına yükler. Model bu değişkenler olmadan çalışmaz. |
 | `run_HW1.m` | Ödevin bütün sonuçlarını üretir: Tablo 1, Tablo 2, sonuç dosyası, Problem 2 grafikleri ve tam model simülasyonu. |
 | `test_aero_table1.m` | Aerodynamics alt sistemini Tablo 1'in 10 durumunda çalıştırır ve sonuçları referans değerlerle karşılaştırır. |
@@ -70,17 +70,17 @@ Kök seviyede alt sistemler birbirine Goto/From etiketleriyle bağlı. Sinyal ak
 1. Kumanda komutları Actuators'a gider.
 2. Actuators'ın çıkışındaki gerçek yüzey açıları Aerodynamics'e gider.
 3. LEF tarifesi α ve q̄/p_s'den flap komutunu üretir. Bu komut da Actuators üzerinden Aerodynamics'e ulaşır.
-4. Aerodynamics, Propulsion ve Mass & Inertia'nın kuvvetleri toplanır.
-5. Toplam kuvvet ile aerodinamik moment Equations of Motion'a girer.
+4. Aerodynamics (F_A, M_A), Propulsion (F_T, M_T) ve Mass & Inertia (F_G) kendi kuvvet ve momentlerini verir. Mass & Inertia ayrıca kütleyi, atalet matrisini ve ağırlık merkezini verir.
+5. Bunların hepsi Equations of Motion'a girer; kuvvetler ve momentler orada toplanır.
 6. Equations of Motion'ın çıkışları (hız, açısal hız, Euler açıları, irtifa) Atmosphere'a, Aerodynamics'e, Mass & Inertia'ya ve Propulsion'a geri döner.
-7. Atmosphere, hızdan ve irtifadan α, β, V_T, q̄, Mach ve p_s'yi hesaplayıp ilgili alt sistemlere dağıtır.
+7. Atmosphere, hızdan ve irtifadan α, β, V_T, q̄, Mach, p_s ve g'yi hesaplayıp ilgili alt sistemlere dağıtır.
 
 Kök seviyedeki etiketler:
 
 | Etiket | Anlamı | Birim | Üreten | Kullanan |
 |---|---|---|---|---|
 | `V_body` | Gövde ekseninde hız [u, v, w] | m/s | EOM | Atmosphere |
-| `omega_body` | Açısal hızlar [p, q, r] | rad/s | EOM | `p`, `q`, `r` olarak Aerodynamics |
+| `omega_body` | Açısal hızlar [p, q, r] | rad/s | EOM | `p`, `q`, `r` olarak Aerodynamics; Propulsion |
 | `euler_angles` | [φ, θ, ψ] | rad | EOM | Mass & Inertia |
 | `altitude` | İrtifa h = −z_E | m | EOM | Atmosphere, Propulsion |
 | `Positions` | Yer ekseninde konum [x, y, z] (NED) | m | EOM | — |
@@ -89,13 +89,15 @@ Kök seviyedeki etiketler:
 | `q_dyn` | Dinamik basınç q̄ | Pa | Atmosphere | Aerodynamics, LEF |
 | `mach` | Mach sayısı | — | Atmosphere | Propulsion |
 | `p_s` | Statik basınç | Pa | Atmosphere | LEF |
+| `g` | Yerçekimi ivmesi g(h) | m/s² | Atmosphere | Mass & Inertia |
 | `dlef_cmd` | LEF komutu | deg | LEF tarifesi | Actuators |
 | `dh`, `da`, `dr`, `dlef`, `d_sb` | Gerçek yüzey açıları | deg | Actuators | Aerodynamics |
 | `throttle` | Gaz kolu | % | kök girişi | Propulsion |
-| `F_aero`, `M_aero` | Aerodinamik kuvvet ve moment | N, N·m | Aerodynamics | Toplam kuvvet, EOM |
-| `F_thrust` | İtki kuvveti | N | Propulsion | Toplam kuvvet |
-| `F_gravity` | Yerçekimi kuvveti | N | Mass & Inertia | Toplam kuvvet |
-| `F_tot` | Toplam kuvvet | N | Toplam kuvvet | EOM |
+| `F_aero`, `M_aero` | Aerodinamik kuvvet ve moment | N, N·m | Aerodynamics | EOM |
+| `F_thrust`, `M_thrust` | İtki kuvveti, motorun jiroskopik momenti | N, N·m | Propulsion | EOM |
+| `F_gravity` | Yerçekimi kuvveti | N | Mass & Inertia | EOM |
+| `mass`, `I_matrix` | Kütle, atalet matrisi | kg, kg·m² | Mass & Inertia | EOM |
+| `xcg` | Ağırlık merkezi konumu | c̄ | Mass & Inertia | Aerodynamics |
 
 ## Alt sistemler
 
@@ -164,11 +166,13 @@ Bütün tablolar doğrusal ara değerlenir. Tablo sınırının dışında değe
 
 **Görevi.** Gaz kolu konumundan motorun itkisini hesaplar. Motorun güce gecikmeli tepkisi de modele dahildir.
 
-**Girdiler.** Gaz kolu δ_th (%), Mach, irtifa (m).
+**Girdiler.** Gaz kolu δ_th (%), Mach, irtifa (m), açısal hızlar ω = [p, q, r] (rad/s).
 
-**Çıktı.** **F**_T = [T, 0, 0] (N). İtki gövde x ekseni boyunca etki eder; motor momenti yoktur.
+**Çıktılar.** **F**_T = [T, 0, 0] (N) ve motorun jiroskopik momenti **M**_T (N·m). İtki gövde x ekseni boyunca ve ağırlık merkezinden etki eder, bu yüzden itkinin kendi momenti yoktur. Jiroskopik moment, motorun dönen parçalarının açısal momentumundan (**h**_E = [H_e, 0, 0]) gelir ve "Engine Gyroscopic Moment" alanında hesaplanır:
 
-**Yapısı.** Dört adımdan oluşur.
+**M**_T = −ω × **h**_E = [0, −r·H_e, q·H_e]
+
+**İtkinin yapısı.** Dört adımdan oluşur.
 
 1. **Gaz dişlisi.** Gaz kolu konumu güç komutuna P_c çevrilir. %0–77 aralığı P_c = 0–50 (military güce kadar), %77–100 aralığı P_c = 50–100 (afterburner) aralığına doğrusal olarak eşlenir.
 
@@ -197,7 +201,7 @@ Bütün tablolar doğrusal ara değerlenir. Tablo sınırının dışında değe
 
 **Girdiler.** İrtifa h (m), gövde hızı **V**_B = [u, v, w] (m/s).
 
-**Çıktılar.** V_T (m/s), α (deg), β (deg), q̄ (Pa), Mach, p_s (Pa).
+**Çıktılar.** V_T (m/s), α (deg), β (deg), q̄ (Pa), Mach, p_s (Pa), g (m/s²).
 
 **Denklemler.** Stevens–Lewis–Johnson Ek A.6, SI'ya çevrilmiş hâli:
 
@@ -210,6 +214,7 @@ Bütün tablolar doğrusal ara değerlenir. Tablo sınırının dışında değe
 - Mach: M = V_T / √(γRT).
 - Dinamik basınç: q̄ = ½ρV_T².
 - Statik basınç: p_s = R·ρ·T.
+- Yerçekimi ivmesi ("Gravity" alanı): g = g₀·[R_e/(R_e + h)]², g₀ = 9.80665 m/s², R_e = 6.371·10⁶ m. 10 000 ft'te g, g₀'dan %0.1 küçüktür.
 
 **Sabitler** (`init_F16`'da İngiliz biriminden çevrilmiş değerler):
 
@@ -225,13 +230,13 @@ Bütün tablolar doğrusal ara değerlenir. Tablo sınırının dışında değe
 
 ### Mass & Inertia
 
-**Görevi.** Yerçekimi kuvvetini gövde eksenine geçirir.
+**Görevi.** Yerçekimi kuvvetini gövde eksenine geçirir ve uçağın kütle özelliklerini modelin geri kalanına dağıtır.
 
-**Girdi.** Euler açıları φ, θ. ψ kullanılmaz, çünkü yerçekiminin gövdeye göre dağılımı uçağın yönüne bağlı değildir.
+**Girdiler.** Euler açıları φ, θ ve Atmosphere'den gelen g. ψ kullanılmaz, çünkü yerçekiminin gövdeye göre dağılımı uçağın yönüne bağlı değildir.
 
-**Çıktı.** **F**_G (N).
+**Çıktılar.** **F**_G (N); "Mass Properties" alanından kütle m (kg), atalet matrisi I (kg·m²) ve ağırlık merkezi x_cg (c̄). Equations of Motion m ve I'yı, Aerodynamics x_cg'yi buradan alır.
 
-**Denklem.** **F**_G = W [−sinθ, sinφ·cosθ, cosφ·cosθ]
+**Denklem.** **F**_G = m·g(h) [−sinθ, sinφ·cosθ, cosφ·cosθ]
 
 **Kütle ve atalet** (TP-1538 Tablo I, `init_F16`):
 
@@ -256,7 +261,7 @@ Bütün tablolar doğrusal ara değerlenir. Tablo sınırının dışında değe
 
 **Çıktılar.** Gerçek yüzey açıları (deg).
 
-**Denklem.** Stabilatör, kanatçık, dümen ve hücum kenarı flapı birinci mertebe sistemlerdir:
+**Denklem.** Stabilatör, kanatçık, dümen ve hücum kenarı flapı birinci mertebe sistemlerdir; her biri kendi alt sistemindedir (`dh Actuator`, `da Actuator`, `dr Actuator`, `dlef Actuator`):
 
 δ̇ = sat_hız[(sat_konum(δ_c) − δ) / τ]
 
@@ -274,17 +279,18 @@ Komut önce konum sınırına kırpılır. Hata τ'ya bölünerek yüzeyin hız�
 
 **Görevi.** Kuvvet ve momentlerden uçağın hareketini bulur.
 
-**Girdiler.** Toplam kuvvet **F** = **F**_A + **F**_T + **F**_G (N), aerodinamik moment **M**_A (N·m).
+**Girdiler.** **F**_A, **F**_T, **F**_G (N), **M**_A, **M**_T (N·m), kütle m ve atalet matrisi I (Mass & Inertia'dan).
 
 **Çıktılar.** **V**_B (m/s), ω = [p, q, r] (rad/s), Euler açıları (rad), konum (m), irtifa (m).
 
-**Yapısı.** Alt sistemin içi beş bölüme ayrılmış:
+**Yapısı.** Alt sistemin içi altı bölüme ayrılmış:
 
 | Bölüm | Denklem |
 |---|---|
+| Force & Moment Summation | **F** = **F**_A + **F**_T + **F**_G,  **M** = **M**_A + **M**_T |
 | Inputs | **V**_B, ω ve Euler açılarını bileşenlerine ayırır |
 | Translational Dynamics | u̇ = F_x/m + rv − qw,  v̇ = F_y/m + pw − ru,  ẇ = F_z/m + qu − pv |
-| Rotational Dynamics | ω̇ = I⁻¹[**M** − ω × **H** − ω × **h**_e], **H** = Iω, **h**_e = [H_e, 0, 0] |
+| Rotational Dynamics | ω̇ = I⁻¹[**M** − ω × **H**], **H** = Iω (jiroskopik terim **M**_T içinde) |
 | Rotational Kinematics | φ̇ = p + (q sinφ + r cosφ) tanθ,  θ̇ = q cosφ − r sinφ,  ψ̇ = (q sinφ + r cosφ)/cosθ |
 | Translational Kinematics | Gövde hızı sırayla φ, θ, ψ kadar döndürülerek yere göre hız bulunur. Bunun integrali konumu verir; irtifa h = −z_E |
 
@@ -298,9 +304,9 @@ Başlangıç koşulları `init_F16`'dadır:
 
 Euler açılarıyla yazıldığı için θ = ±90°'de kinematik denklem tekildir.
 
-### LEF tarifesi ve toplam kuvvet
+### LEF tarifesi
 
-**LEF tarifesi.** Hücum kenarı flapının komutunu α'ya ve q̄/p_s oranına göre üretir. Komut, Actuators'ın flap kanalına gider:
+Hücum kenarı flapının komutunu α'ya ve q̄/p_s oranına göre üretir. Komut, Actuators'ın flap kanalına gider:
 
 δlef = 1.38·(2s + 7.25)/(s + 7.25)·α − 9.05·q̄/p_s + 1.45
 
@@ -308,7 +314,19 @@ Euler açılarıyla yazıldığı için θ = ±90°'de kinematik denklem tekildi
 - q̄/p_s oranı Mach'ın karesiyle orantılıdır, (γ/2)M². Hız arttıkça flap toplanır.
 - Ödevin istediği gibi Tablo 1 hesaplarında bu tarife kullanılmaz; δlef tablodan doğrudan verilir.
 
-**Toplam kuvvet.** Aerodinamik, itki ve yerçekimi kuvvetleri gövde ekseninde toplanır: **F** = **F**_A + **F**_T + **F**_G.
+### HW-1 geri bildirimi sonrası düzeltmeler
+
+HW-1 notlandırmasından sonra hocanın genel geri bildirimine göre model beş noktada düzeltildi (Midterm Project ile birlikte):
+
+| # | Önce | Şimdi |
+|---|---|---|
+| 1 | Dört eyleyici tek Actuators bloğunda | Her eyleyici kendi alt sisteminde |
+| 2 | g = 9.80665 m/s² sabit | g = g₀[R_e/(R_e + h)]², Atmosphere'in çıkışı |
+| 3 | m, I ve x_cg çalışma alanı sabiti olarak EOM'da ve kökte | Mass & Inertia'nın çıkışları; EOM ve Aerodynamics buradan alır |
+| 4 | Jiroskopik moment EOM içinde | Propulsion içinde, **M**_T çıkışı |
+| 5 | Kuvvetler kökteki "TOTAL FORCES" bloğunda toplanıyor | Kuvvet ve momentler EOM içinde toplanıyor |
+
+Geri bildirimin diğer maddeleri (LEF tarifesi ve eyleyicisi, yerçekimi kuvveti, motor dinamiği) modelde zaten vardı. g sabit tutulduğunda düzeltilmiş model, eski modelin durum türevlerini keyfî durumlarda 6·10⁻¹¹ farkla veriyor; yani 1 ve 3–5. maddeler sonucu değiştirmiyor. Tek fiziksel değişiklik g(h). HW-1 sonuçları (Tablo 1 ve 2) aynı kaldı; HW-2 sonuçları düzeltilmiş modelle yeniden hesaplandı.
 
 ## Doğrulama
 
@@ -474,23 +492,23 @@ Kumandalar sıfırken yunuslama momenti burun aşağı yönde olduğu için uça
 
 ## Kabuller
 
-- **Birimler.** Modelin içinde SI kullanılıyor. Açılar ve kumanda yüzeyleri derece, açısal hızlar rad/s. Dönüşümler için 1 ft = 0.3048 m, 1 lbf = 4.448222 N kullanıldı (ödevin istediği değerler). g = 9.80665 m/s².
+- **Birimler.** Modelin içinde SI kullanılıyor. Açılar ve kumanda yüzeyleri derece, açısal hızlar rad/s. Dönüşümler için 1 ft = 0.3048 m, 1 lbf = 4.448222 N kullanıldı (ödevin istediği değerler). Kütle m = W/g₀, g₀ = 9.80665 m/s²; modelde g irtifaya bağlı.
 - **Eksenler.** Kuvvet ve momentler gövde ekseninde. Momentler x_cg = 0.35c̄ etrafında alınıyor. Konum NED ekseninde, irtifa h = −z_E.
 - **LEF katkısı.** Λ = 1 − δlef/25 ile ölçekleniyor (TP-1538 ve ödevin C_m,t formülü). δlef = 25°'de Λ = 0 olur ve LEF fark terimleri sıfırlanır.
 - **Ara değerleme.** Bütün tablolar doğrusal ara değerleniyor; tablo sınırının dışında son değer korunuyor.
 - **Problem 2.** Açısal hızlar sıfır, uçuş koşulu Tablo 1 ile aynı (0.4 Mach, 10 000 ft). C_L ve C_D gövde eksenindeki katsayılardan rüzgâr eksenine dönüşümle bulunuyor. C_m,tα, 0.5° aralıklı C_m,t değerlerinden sayısal türevle (1/deg) hesaplanıyor.
-- **Motor.** İtki gövde x ekseni boyunca etki ediyor; itkinin ağırlık merkezine göre momenti yok. Motorun açısal momentumu H_e sabit alınıyor.
+- **Motor.** İtki gövde x ekseni boyunca etki ediyor; itkinin ağırlık merkezine göre momenti yok. Motorun açısal momentumu H_e sabit alınıyor; jiroskopik momenti Propulsion hesaplıyor.
 - **Eyleyiciler.** Başlangıç açıları sıfır. Kumanda komutları önce konum sınırına kırpılıyor.
 
 ## HW-2: Trim ve doğrusallaştırma
 
-HW-2'de HW-1 modeli trim edildi ve doğrusallaştırıldı. Bunun için yeni bir model kurulmadı. m-dosyaları HW-1 blok diyagramını (`F16_6DOF.slx`) Simulink'in model API'siyle çağırıyor: `F16_6DOF(0, x, u, 'derivs')`. Model dosyası değiştirilmiyor; sadece ağırlık merkezi (`xcg`, kökteki `Constant1`) çalışma alanında güncellenip model yeniden derleniyor. Böylece trim ve doğrusal modeller, HW-1'de doğrulanan aerodinamik, itki, atmosfer ve hareket denklemlerinden doğrudan geliyor.
+HW-2'de HW-1 modeli trim edildi ve doğrusallaştırıldı. Bunun için yeni bir model kurulmadı. m-dosyaları HW-1 blok diyagramını (`F16_6DOF.slx`) Simulink'in model API'siyle çağırıyor: `F16_6DOF(0, x, u, 'derivs')`. Model dosyası değiştirilmiyor; sadece ağırlık merkezi (`xcg`, Mass & Inertia'daki "CG position" sabiti) çalışma alanında güncellenip model yeniden derleniyor. Aşağıdaki sonuçlar, HW-1 geri bildirimi sonrası düzeltilmiş modelle (g(h) dahil) yeniden hesaplandı. Böylece trim ve doğrusal modeller, HW-1'de doğrulanan aerodinamik, itki, atmosfer ve hareket denklemlerinden doğrudan geliyor.
 
 ### Dosyalar
 
 | Dosya / klasör | İçerik |
 |---|---|
-| `F16_6DOF.slx` | HW-1 Simulink modeli (R2023a). HW-2'de değiştirilmeden kullanılıyor. |
+| `F16_6DOF.slx` | HW-1 Simulink modeli (R2023a), geri bildirim sonrası düzeltilmiş hâli. Trim ve doğrusallaştırma sırasında değiştirilmiyor. |
 | `init_F16.m` | HW-1'deki gibi bütün veri ve sabitleri yükler. |
 | `run_HW2.m` | Ödevin bütün sonuçlarını üretir: 6 trim durumu, 3 noktada gövde ve rüzgâr ekseni modelleri, sonuç dosyası, doğrulama tabloları ve grafikler. |
 | `trim_F16.m` | `fmincon` (SQP) ile trim. Düz uçuş ve kararlı dönüş; γ, β, φ ve n_z isteğe bağlı verilir. |
@@ -523,19 +541,19 @@ Toplam süre yaklaşık 1 dakika. `F16_6DOF.slx` bu sırada değiştirilmez.
 - **Dönüş kinematiği:** p = −ψ̇ sinθ, q = ψ̇ sinφ cosθ, r = ψ̇ cosφ cosθ. Böylece φ̇ = θ̇ = 0 olur.
 - **Maliyet** (Stevens–Lewis–Johnson): J = V̇_T² + 100(α̇² + β̇²) + 10(ṗ² + q̇² + ṙ²).
 - **Eşitlik kısıtları:** uçuş yolu açısı sinγ = a sinθ − b cosθ. Durum 5'te ayrıca n_z = 4.
-- **n_z tanımı:** gövde −z eksenindeki (aero + itki) kuvvetin ağırlığa oranı, n_z = −(ẇ − qu + pv − g cosφ cosθ)/g.
+- **n_z tanımı:** gövde −z eksenindeki (aero + itki) kuvvetin ağırlığa oranı, n_z = −(ẇ − qu + pv − g cosφ cosθ)/g; g, o irtifadaki g(h).
 - **Kumandalar ve motor:** δlef her değerlendirmede statik LEF tarifesinden ([0, 25]°) alınır. Eyleyici durumları komuta, motor gücü P3 gaz kolunun kararlı gücüne yerleştirilir.
 
 ### Trim sonuçları (açılar deg)
 
 | Durum | V_T [m/s] | α | θ | φ | δh | δr | δlef | δT [%] | n_z | ψ̇ [rad/s] |
 |:-:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| 1 | 196.92 | 1.683 | 1.683 | 0 | −2.327 | 0 | 1.490 | 24.45 | 1.000 | 0 |
-| 2 | 101.03 | 8.148 | 5.148 | 0 | −6.297 | 0 | 12.124 | 7.90 | 0.996 | 0 |
-| 3 | 168.38 | 1.986 | 11.986 | 0 | −2.550 | 0 | 2.606 | 41.43 | 0.978 | 0 |
-| 4 | 196.92 | 4.560 | 2.284 | 60 | −4.348 | −0.259 | 5.461 | 36.92 | 1.991 | 0.0861 |
-| 5 | 196.92 | 10.283 | 2.521 | 75.956 | −8.701 | −0.285 | 13.358 | 81.81 | 4.000 | 0.1962 |
-| 6 | 196.92 | 1.432 | 1.432 | 0 | −0.518 | 0 | 1.144 | 22.56 | 1.000 | 0 |
+| 1 | 196.92 | 1.680 | 1.680 | 0 | −2.325 | 0 | 1.486 | 24.45 | 1.000 | 0 |
+| 2 | 101.03 | 8.146 | 5.146 | 0 | −6.295 | 0 | 12.121 | 7.89 | 0.996 | 0 |
+| 3 | 168.38 | 1.985 | 11.985 | 0 | −2.549 | 0 | 2.605 | 41.42 | 0.978 | 0 |
+| 4 | 196.92 | 4.555 | 2.281 | 60 | −4.345 | −0.259 | 5.453 | 36.88 | 1.991 | 0.0860 |
+| 5 | 196.92 | 10.272 | 2.518 | 75.955 | −8.700 | −0.284 | 13.344 | 81.76 | 4.000 | 0.1960 |
+| 6 | 196.92 | 1.429 | 1.429 | 0 | −0.518 | 0 | 1.140 | 22.55 | 1.000 | 0 |
 
 Durum 1–5'te c.g. 0.25c̄, Durum 6'da 0.35c̄. Bütün durumlarda J < 2·10⁻¹¹.
 
@@ -551,15 +569,15 @@ Koşullar: i = Durum 1, ii = Durum 4, iii = Durum 6. Gövde ekseni A matrisinin 
 | Mod | i (0.25c̄, düz) | ii (0.25c̄, φ = 60°) | iii (0.35c̄, düz) |
 |---|---|---|---|
 | Kısa periyot | −1.311 ± 2.166j | −1.336 ± 2.253j | **+0.787**, −2.813 (gerçel) |
-| Fugoid | −0.0079 ± 0.0624j | −0.0106 ± 0.1093j (fugoid–spiral, bağlı) | −0.0106 ± 0.0874j |
-| Hollanda yuvarlanması | −0.411 ± 3.416j | −0.505 ± 3.658j | −0.380 ± 3.096j |
-| Yuvarlanma | −3.427 | −3.152 | −3.464 |
+| Fugoid | −0.0079 ± 0.0623j | −0.0106 ± 0.1092j (fugoid–spiral, bağlı) | −0.0106 ± 0.0873j |
+| Hollanda yuvarlanması | −0.411 ± 3.415j | −0.504 ± 3.658j | −0.380 ± 3.096j |
+| Yuvarlanma | −3.427 | −3.153 | −3.464 |
 | Spiral | −0.0113 | −0.0086 (fugoid–spiral, bağlı) | −0.0131 |
 
-i ve iii'de boylamsal ve yanal hareket birbirinden ayrık: A'nın çapraz blokları (A12, A21) pratikte sıfır (en büyük eleman 0.003), bu yüzden blok (A11, A22) ve tam 8×8 özdeğerler aynı. ii'de (φ = 60°) çapraz bloklar büyük: örneğin ẇ'nin φ'ye türevi −g sinφ cosθ ≈ −8.49. Bu durumda bloklar ayrı ayrı doğru sonuç vermez; tablodaki ii değerleri tam 8×8 matristen. Hızlı modlar (kısa periyot, yuvarlanma, Hollanda yuvarlanması) bu bağlantıdan pek etkilenmiyor. Yavaş modlar ise birbirine karışıyor: özvektörlere göre ii'deki salınımlı yavaş mod u, θ ve φ'yi birlikte içeriyor (fugoid ile spiralin bağlı hâli). Blok hesabı bu modu −0.0115 ± 0.0522j (periyot ≈ 120 s) gösterirdi; doğrusu −0.0106 ± 0.1093j (periyot ≈ 57 s).
+i ve iii'de boylamsal ve yanal hareket birbirinden ayrık: A'nın çapraz blokları (A12, A21) pratikte sıfır (en büyük eleman 0.003), bu yüzden blok (A11, A22) ve tam 8×8 özdeğerler aynı. ii'de (φ = 60°) çapraz bloklar büyük: örneğin ẇ'nin φ'ye türevi −g sinφ cosθ ≈ −8.48. Bu durumda bloklar ayrı ayrı doğru sonuç vermez; tablodaki ii değerleri tam 8×8 matristen. Hızlı modlar (kısa periyot, yuvarlanma, Hollanda yuvarlanması) bu bağlantıdan pek etkilenmiyor. Yavaş modlar ise birbirine karışıyor: özvektörlere göre ii'deki salınımlı yavaş mod u, θ ve φ'yi birlikte içeriyor (fugoid ile spiralin bağlı hâli). Blok hesabı bu modu −0.0115 ± 0.0522j (periyot ≈ 120 s) gösterirdi; doğrusu −0.0106 ± 0.1093j (periyot ≈ 57 s).
 
 - **Ağırlık merkezinin etkisi (i → iii).** x_cg 0.25c̄'den 0.35c̄'ye kayınca q̇ satırındaki w (α) türevinin işareti değişiyor (−0.026 → +0.018): uçak statik olarak kararsız hale geliyor. Kısa periyot salınımı iki gerçel köke ayrılıyor, biri pozitif (+0.787 1/s, genliğin iki katına çıkma süresi yaklaşık 0.9 s). Yanal modlar neredeyse değişmiyor.
-- **Dönüşün etkisi (i → ii).** φ = 60°'de p, q, r sıfır değil ve yerçekimi gövdeye yatık açıyla etki ediyor. Bu yüzden A'nın boylamsal ve yanal blokları arasında büyük terimler oluşuyor (ör. ẇ'de φ: −8.49, θ̇'da r: −sinφ = −0.866), iki hareket birbirine bağlanıyor. Hızlı modlar az değişirken fugoid ve spiral birbirine karışıyor; yavaş salınımın periyodu düz uçuştaki ≈ 101 s'den ≈ 57 s'ye iniyor. α ve dolayısıyla δlef daha büyük olduğu için türevler de biraz değişiyor.
+- **Dönüşün etkisi (i → ii).** φ = 60°'de p, q, r sıfır değil ve yerçekimi gövdeye yatık açıyla etki ediyor. Bu yüzden A'nın boylamsal ve yanal blokları arasında büyük terimler oluşuyor (ör. ẇ'de φ: −8.48, θ̇'da r: −sinφ = −0.866), iki hareket birbirine bağlanıyor. Hızlı modlar az değişirken fugoid ve spiral birbirine karışıyor; yavaş salınımın periyodu düz uçuştaki ≈ 101 s'den ≈ 57 s'ye iniyor. α ve dolayısıyla δlef daha büyük olduğu için türevler de biraz değişiyor.
 
 ### Doğrulama
 

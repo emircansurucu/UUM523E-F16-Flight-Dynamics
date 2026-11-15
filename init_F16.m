@@ -47,9 +47,11 @@ gamma_R_SI = 1.4 * 1716.3 * R_conv;
 R_ps_SI = 1715 * R_conv;
 
 %% 4. Kütle, Geometri ve Atalet Özellikleri (NASA TP-1538 Tablo I -> SI)
-g      = 9.80665;                % Yercekimi ivmesi (m/s^2)
-Weight = 20500.0 * lbf2N;        % Ağırlık: 91188.551 N
-m      = Weight / g;             % Kütle: ~9298.64 kg (637.14 slugs)
+g0     = 9.80665;                % Deniz seviyesi yerçekimi ivmesi (m/s^2)
+Re_SI  = 6.371e6;                % Dünya yarıçapı (m); modelde g = g0*(Re/(Re+h))^2 (HW-1 geri bildirimi)
+g      = g0;                     % Kütle hesabı ve ilk tahminler için deniz seviyesi değeri
+Weight = 20500.0 * lbf2N;        % Deniz seviyesi ağırlığı: 91188.551 N
+m      = Weight / g0;            % Kütle: ~9298.64 kg (637.14 slugs)
 
 b      = 30.0 * ft2m;            % Kanat açıklığı: 9.144 m
 S      = 300.0 * (ft2m^2);       % Kanat alanı: 27.870912 m^2

@@ -46,5 +46,7 @@ d.betadot  = (d.vdot*VT - s.v*d.VTdot)/(VT^2*cos(asin(s.v/VT)));
 
 % Yük faktörü: gövde -z yönündeki aero + itki kuvvetinin ağırlığa oranı
 % (wdot = q*u - p*v + g*cos(phi)*cos(theta) + Z/m  denkleminden)
-d.nz = -(d.wdot - s.q*s.u + s.p*s.v - M.g*cos(s.phi)*cos(s.theta))/M.g;
+% g, modeldeki gibi irtifaya bağlıdır: g(h) = g0*(Re/(Re+h))^2
+gh   = M.gh(s.h);
+d.nz = -(d.wdot - s.q*s.u + s.p*s.v - gh*cos(s.phi)*cos(s.theta))/gh;
 end
