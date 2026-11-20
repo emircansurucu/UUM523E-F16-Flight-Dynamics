@@ -51,7 +51,7 @@ g0     = 9.80665;                % Deniz seviyesi yerçekimi ivmesi (m/s^2)
 Re_SI  = 6.371e6;                % Dünya yarıçapı (m); modelde g = g0*(Re/(Re+h))^2 (HW-1 geri bildirimi)
 g      = g0;                     % Kütle hesabı ve ilk tahminler için deniz seviyesi değeri
 Weight = 20500.0 * lbf2N;        % Deniz seviyesi ağırlığı: 91188.551 N
-m      = Weight / g0;            % Kütle: ~9298.64 kg (637.14 slugs)
+m      = 9295.4;                 % Kütle (kg): HW-2 çözüm kılavuzundaki referans değer (TP-1538 Tablo I)
 
 b      = 30.0 * ft2m;            % Kanat açıklığı: 9.144 m
 S      = 300.0 * (ft2m^2);       % Kanat alanı: 27.870912 m^2

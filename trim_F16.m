@@ -14,11 +14,12 @@ function tr = trim_F16(M, c)
 %
 %   Dönüş kinematiği (Stevens-Lewis): p = -psidot*sin(theta),
 %   q = psidot*sin(phi)*cos(theta), r = psidot*cos(phi)*cos(theta).
-%   Böylece phidot = thetadot = 0 olur.
 %
 %   Maliyet fonksiyonu (Stevens-Lewis-Johnson):
 %     J = VTdot^2 + 100*(alphadot^2 + betadot^2) + 10*(pdot^2 + qdot^2 + rdot^2)
-%   Eşitlik kısıtları: uçuş yolu açısı ve (verilmişse) nz.
+%   Eşitlik kısıtları: uçuş yolu açısı ve (verilmişse) yük faktörü.
+%   Yük faktörü Lecture 4'teki gibi nz = 1/cos(mu), mu rüzgâr ekseni yatış açısı:
+%     tan(mu) = cos(theta)*sin(phi) / (sin(alpha)*sin(theta) + cos(alpha)*cos(theta)*cos(phi))
 
 d2r = pi/180;
 
@@ -43,18 +44,20 @@ opt = optimoptions('fmincon', 'Algorithm', 'sqp', 'Display', 'off', ...
     'MaxFunctionEvaluations', 2e4, 'MaxIterations', 2e3, ...
     'OptimalityTolerance', 1e-12, 'ConstraintTolerance', 1e-10, 'StepTolerance', 1e-14);
 [z, J, exitflag] = fmincon(@(z) maliyet(M, c, z), z0, [], [], [], [], lb, ub, ...
-                           @(z) kisit(M, c, z), opt);
+                           @(z) kisit(c, z), opt);
 
 s = durum(c, z);
 d = f16_eval(M, s);
-[~, ceq] = kisit(M, c, z);
+[~, ceq] = kisit(c, z);
 
+tr.c   = c;
 tr.s   = s;
 tr.d   = d;
 tr.J   = J;
 tr.ceq = ceq;
 tr.exitflag = exitflag;
 tr.xcg = M.xcg;
+tr.mu  = ruzgarYatis(z);
 
 % TrimResults satırı: VT alpha beta phi theta psi(psidot) p q r dT dh da dr dlef J
 psiCol = s.psi;
@@ -75,8 +78,7 @@ s.phi = phi;  s.theta = theta;  s.psi = 0;
 s.h  = c.h;
 s.dT = 100*z(6);
 s.dh = z(7);  s.da = z(8);  s.dr = z(9);
-% Otomatik LEF tarifesi (kararlı hal), 0-25 deg arasında
-s.dlef = min(max(1.38*alpha/pi*180 - 9.05*c.qps + 1.45, 0), 25)*pi/180;
+s.dlef = lefTarife(alpha, c.qps);
 end
 
 function J = maliyet(M, c, z)
@@ -84,14 +86,19 @@ d = f16_eval(M, durum(c, z));
 J = d.VTdot^2 + 100*(d.alphadot^2 + d.betadot^2) + 10*(d.pdot^2 + d.qdot^2 + d.rdot^2);
 end
 
-function [cin, ceq] = kisit(M, c, z)
+function [cin, ceq] = kisit(c, z)
 alpha = z(1); beta = z(2); phi = z(3); theta = z(4);
 a = cos(alpha)*cos(beta);
 b = sin(phi)*sin(beta) + cos(phi)*sin(alpha)*cos(beta);
 cin = [];
 ceq = sin(c.gamma) - (a*sin(theta) - b*cos(theta));
 if ~isnan(c.nz)
-    d = f16_eval(M, durum(c, z));
-    ceq(2) = d.nz - c.nz;
+    ceq(2) = c.nz - 1/cos(ruzgarYatis(z));
 end
+end
+
+function mu = ruzgarYatis(z)
+% Rüzgâr ekseni yatış açısı (Lecture 4)
+alpha = z(1); phi = z(3); theta = z(4);
+mu = atan2(cos(theta)*sin(phi), sin(alpha)*sin(theta) + cos(alpha)*cos(theta)*cos(phi));
 end

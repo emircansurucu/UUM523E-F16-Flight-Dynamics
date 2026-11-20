@@ -27,7 +27,7 @@
 \maketitle
 
 \begin{abstract}
-A nonlinear six-degree-of-freedom F-16 model was built in Simulink from the NASA TP-1538 aerodynamic and engine data, trimmed with a constrained optimizer, and linearized numerically in body and wind axes. This report summarizes that work and uses it to study three trim conditions at Mach 0.6 and 10\,000 ft: wings-level flight with the center of gravity at $0.25\bar c$ (i), a $60^\circ$ banked level turn (ii), and wings-level flight with the center of gravity at $0.35\bar c$ (iii). Started from the trim points with fixed controls, the nonlinear model holds conditions i and ii for 60~s and one full turn with deviations below $10^{-2}$~m/s and $10^{-3}$~deg; in condition iii the states diverge slowly. Stability parameters and nondimensional derivatives are extracted from the wind-axis state matrices, with the inertia coupling of the roll and yaw rows removed and the thrust contribution to speed damping computed from the engine model. Condition iii is longitudinally statically unstable ($C_{m_\alpha}=+0.156$~rad$^{-1}$), and its short-period mode splits into two real roots, one with a time to double amplitude of 0.88~s. In the turn, the trim angular rates add inertial terms to the state matrix and couple the phugoid and spiral modes, which shortens the phugoid period from 120~s to 57~s.
+A nonlinear six-degree-of-freedom F-16 model was built in Simulink from the NASA TP-1538 aerodynamic and engine data, trimmed with a constrained optimizer, and linearized numerically in body and wind axes. This report summarizes that work and uses it to study three trim conditions at Mach 0.6 and 10\,000 ft: wings-level flight with the center of gravity at $0.25\bar c$ (i), a $60^\circ$ banked level turn (ii), and wings-level flight with the center of gravity at $0.35\bar c$ (iii). Started from the trim points with fixed controls, the nonlinear model holds conditions i and ii for 60~s and one full turn with deviations below $10^{-2}$~m/s and $10^{-3}$~deg; in condition iii the states diverge slowly. Stability parameters and nondimensional derivatives are extracted from the wind-axis state matrices, with the inertia coupling of the roll and yaw rows removed and the thrust contribution to speed damping computed from the engine model. Condition iii is longitudinally statically unstable ($C_{m_\alpha}=+0.156$~rad$^{-1}$). With the leading-edge flap following its schedule in the linear model, the short period splits into two stable real roots and the phugoid becomes unstable with a time to double amplitude of 20.5~s, which explains the slow divergence seen in the simulation; with the flap fixed, an unstable root with a time to double amplitude of 0.88~s appears instead. In the turn, the trim angular rates add inertial terms to the state matrix and couple the phugoid and spiral modes, which shortens the phugoid period from 111~s to 57~s.
 \end{abstract}
 
 \section*{Nomenclature}
@@ -88,7 +88,7 @@ All analyses are in MATLAB m-files that call the Homework 1 model (\texttt{F16\_
 \section{Plant Model}
 
 \subsection{Structure}
-The model (Fig.~\ref{fig:model}) consists of six subsystems built from basic Simulink blocks without the Aerospace Blockset: Atmosphere, Aerodynamics, Propulsion, Mass and Inertia, Actuators, and Equations of Motion. The leading-edge-flap (LEF) schedule is at the root level; the Aerodynamics, Propulsion and Mass and Inertia subsystems each output their own body-axis forces and moments, which are summed in the Equations of Motion. Mass, inertia and geometry are those of TP-1538 Table~I~\cite{tp1538} in SI units: $m=9298.64$~kg, $S=27.871$~m$^2$, $b=9.144$~m, $\bar c=3.4503$~m, $I_{xx}=12\,875$, $I_{yy}=75\,674$, $I_{zz}=85\,552$, $I_{xz}=1331.4$~kg\,m$^2$, and $h_E=216.93$~kg\,m$^2$/s.
+The model (Fig.~\ref{fig:model}) consists of six subsystems built from basic Simulink blocks without the Aerospace Blockset: Atmosphere, Aerodynamics, Propulsion, Mass and Inertia, Actuators, and Equations of Motion. The leading-edge-flap (LEF) schedule is at the root level; the Aerodynamics, Propulsion and Mass and Inertia subsystems each output their own body-axis forces and moments, which are summed in the Equations of Motion. Mass, inertia and geometry are those of TP-1538 Table~I~\cite{tp1538} in SI units: $m=9295.4$~kg, $S=27.871$~m$^2$, $b=9.144$~m, $\bar c=3.4503$~m, $I_{xx}=12\,875$, $I_{yy}=75\,674$, $I_{zz}=85\,552$, $I_{xz}=1331.4$~kg\,m$^2$, and $h_E=216.93$~kg\,m$^2$/s.
 
 \begin{figure}[hbt!]
 \centering
@@ -138,7 +138,7 @@ The trim problem is solved with \texttt{fmincon} (SQP). The unknowns are $\alpha
 \begin{equation}
 J=\dot V_T^2+100(\dot\alpha^2+\dot\beta^2)+10(\dot p^2+\dot q^2+\dot r^2)
 \end{equation}
-is minimized subject to the flight-path-angle constraint and, where specified, the load-factor constraint. The LEF is set by the steady-state schedule at every evaluation. Table~\ref{tab:trim} lists the six trim points; $J<2\times10^{-11}$ in all cases, and the model derivatives at trim, including the actuator, engine and LEF-filter states, vanish to $10^{-4}$~m/s$^2$ and $10^{-6}$~rad/s$^2$. Conditions i, ii and iii of this report are cases 1, 4 and 6.
+is minimized subject to the flight-path-angle constraint and, where specified, the load-factor constraint. As in Lecture 4, the load factor of case 5 is $n_z=1/\cos\mu$, with the wind-axis bank angle $\tan\mu=\cos\theta\sin\phi/(\sin\alpha\sin\theta+\cos\alpha\cos\theta\cos\phi)$, so the constraint is $f_{NLF}=n_z-1/\cos\mu=0$. The LEF is set by the steady-state schedule at every evaluation. Table~\ref{tab:trim} lists the six trim points; $J<10^{-10}$ in all cases, and the model derivatives at trim, including the actuator, engine and LEF-filter states, vanish to $2\times10^{-4}$~m/s$^2$ and $10^{-6}$~rad/s$^2$. Conditions i, ii and iii of this report are cases 1, 4 and 6.
 
 \begin{table}[hbt!]
 \caption{\label{tab:trim} Trim results of Homework 2, recomputed with the revised model (angles in deg, $\dot\psi$ in rad/s)}
@@ -155,23 +155,57 @@ Case & $M$, $h$ [ft], spec. & $x_{cg}$ & $V_T$ [m/s] & $\alpha$ & $\theta$ & $\p
 \end{table}
 
 \subsection{Linearization}
-The model is linearized by central differences about each trim point, perturbing one state or input at a time; the derivatives are read from the Simulink model through its model API. The wind-axis model used in this report has
+The model is linearized by central differences about each trim point, perturbing one state or input at a time by $10^{-3}$ (in m/s, rad, rad/s and \%, as in Lecture~5); the derivatives are read from the Simulink model through its model API. The wind-axis model used in this report has
 \begin{equation}
 \Delta\mathbf x=[\Delta V_T\ \Delta\alpha\ \Delta q\ \Delta\theta\ \Delta\beta\ \Delta p\ \Delta r\ \Delta\phi]^T,\qquad
 \Delta\mathbf u=[\Delta\delta_T\ \Delta\delta_h\ \Delta\delta_a\ \Delta\delta_r]^T,
 \end{equation}
-with $A=\begin{bmatrix}A_{11}&A_{21}\\A_{12}&A_{22}\end{bmatrix}$ partitioned into the longitudinal block $A_{11}$, the lateral-directional block $A_{22}$ and the coupling blocks. The actuator and engine states are not part of the 8-state model, and $\delta_{lef}$ is held at its trim value. The body- and wind-axis models satisfy $A_W=TA_BT^{-1}$ to a relative difference of $5\times10^{-6}$, where $T$ is the Jacobian of $[V_T,\alpha,\beta]$ with respect to $[u,v,w]$.
+with $A=\begin{bmatrix}A_{11}&A_{21}\\A_{12}&A_{22}\end{bmatrix}$ partitioned into the longitudinal block $A_{11}$, the lateral-directional block $A_{22}$ and the coupling blocks. The actuator and engine states are not part of the 8-state model. The LEF follows its schedule: at every perturbed state, $\delta_{lef}$ is recomputed from the perturbed $\alpha$ and $\bar q/p_s\propto V_T^2$ (the filter $(2s+7.25)/(s+7.25)$ has unit steady-state gain). Only Problem 2 (Sec.~V) uses a second model with $\delta_{lef}$ held at its trim value. The schedule changes three elements: through $\partial\delta_{lef}/\partial\alpha=1.38$, the flap adds a nose-down moment and drag as $\alpha$ grows, so $a_{32}$ decreases by 1.93, 2.16 and 2.42~s$^{-2}$ in i, ii and iii, $a_{12}$ decreases by 3.0 and 3.3~m\,s$^{-2}$ in i and iii (it is almost unchanged in ii), and $a_{22}$ increases by 0.06~s$^{-1}$.
 
-Figure~\ref{fig:linnl} compares the linear and nonlinear responses in condition iii. The lateral channels agree; in the longitudinal channel the linear model diverges while the nonlinear model does not. The difference is the LEF schedule, which feeds $\alpha$ back through its filter in the nonlinear model. With the actuator, engine and LEF states included, the eigenvalues of the full nonlinear model at trim iii contain only a slow unstable root at $+0.044$~s$^{-1}$; with the LEF states frozen, the root at $+0.788$~s$^{-1}$ of the 8-state model returns.
+\emph{Comparison of the three conditions.} Table~\ref{tab:alin} lists the main elements of $A_W$ and $B_W$ that change between the conditions. The speed-damping and rate elements that change in the turn ($a_{11}$, $a_{13}$, $a_{67}$) are discussed with the stability parameters in Sec.~V.
+\begin{itemize}
+\item $a_{32}$ (pitch stiffness, $M_\alpha$ with the LEF contribution): moving the center of gravity aft from $0.25\bar c$ to $0.35\bar c$ removes the moment transfer $C_Z(0.35-x_{cg})$, i.e., the stabilizing arm of the lift ahead of the center of gravity, and $a_{32}$ changes sign. The aircraft is statically unstable in pitch in iii, and the LEF schedule only reduces the instability. In the turn, $a_{32}$ is 9\,\% larger in magnitude because $\alpha_1$ is higher and $\bar q$ is the same.
+\item $a_{33}$ (pitch damping): the tail is the main source of damping, and its arm about the center of gravity is shorter in iii, so the damping falls by 36\,\%.
+\item $b_{32}$ (stabilator power): for the same reason the stabilator moment arm, and thus its pitch control power, is 8\,\% smaller in iii.
+\item $a_{12}$ (speed change with $\alpha$): in wings-level flight, raising $\alpha$ at constant $\theta$ tilts the flight path down, and gravity accelerates the aircraft ($+g\cos\theta_1=9.8$~m\,s$^{-2}$) more than the extra drag decelerates it, so $a_{12}>0$. In the $60^\circ$ turn only $g\cos\phi_1$ of gravity acts in the plane of $\alpha$, and the drag gradient is larger because $C_{L_1}$ is twice as large (induced drag $\propto C_L^2$), so $a_{12}$ becomes strongly negative.
+\item $a_{15}$, $a_{18}$, $a_{43}$, $a_{47}$ (coupling): in straight flight the coupling blocks are zero. In the turn, sideslip and bank change the component of gravity along the flight path ($a_{15}\approx g\cos\theta_1\sin\phi_1$), and the pitch kinematics $\dot\theta=q\cos\phi-r\sin\phi$ link $\theta$ to both $q$ and $r$. The longitudinal and lateral-directional motions are therefore coupled (Sec.~VI).
+\item $a_{65}$ (dihedral effect): $L_\beta$ is 33\,\% larger in the turn because the dihedral effect of the swept wing grows with $\alpha$ and $C_L$.
+\item $a_{75}$ (directional stiffness): the vertical tail arm is shorter with the aft center of gravity, so $N_\beta$ is 18\,\% smaller in iii.
+\item $a_{76}$: in the turn, the trim rates add the inertial term $\partial[\boldsymbol\omega\times\mathbf I\boldsymbol\omega]_z/\partial p=(I_{yy}-I_{xx})q_1$ to the yaw equation, so $\partial\dot r/\partial p$ is eight times its straight-flight value.
+\end{itemize}
+Physically, the forward-center-of-gravity conditions are stiff and well damped in pitch, the aft center of gravity gives a pitch-unstable airframe with less control power, and the turn adds kinematic and inertial coupling between the two motions while leaving the fast dynamics nearly unchanged.
+
+\begin{table}[hbt!]
+\caption{\label{tab:alin} Elements of $A_W$ and $B_W$ (scheduled LEF) that change between the conditions}
+\centering
+\begin{tabular}{llccc}
+\toprule
+Element & Unit & i & ii & iii \\
+\midrule
+\tabinput{tables/alin.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:linnl} compares the linear and nonlinear responses in condition iii. With the scheduled LEF in the linear model, the two agree in all channels over 10~s. With a $1^\circ$ doublet the nonlinear model departs: the trim deflection is only $\delta_{lef}=1.14^\circ$, so a nose-down change of $0.8^\circ$ in $\alpha$ drives the flap to its $0^\circ$ limit, its stabilizing feedback is lost, and the fast pitch divergence of the fixed-flap airframe appears.
 
 \begin{figure}[hbt!]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/HW2_LinVsNonlin_iii.png}
-\caption{Linear (dashed) and nonlinear (solid) responses in condition iii: $0.1^\circ$ stabilator doublet (top) and $0.1^\circ$ aileron pulse (bottom).}
+\caption{Linear (dashed, scheduled LEF) and nonlinear (solid) responses in condition iii: $0.1^\circ$ stabilator doublet (top) and $0.1^\circ$ aileron pulse (bottom).}
 \label{fig:linnl}
 \end{figure}
 
-\emph{Corrections.} The trim and linearization procedures were not changed, but all Homework 2 results were recomputed with the revised model of Sec.~II.C; Table~\ref{tab:trim} and \texttt{HW2\_Group2.mat} contain the new values. Because $g$ is now 0.1\,\% smaller at 10\,000~ft, the trim angles of attack decrease by at most $0.01^\circ$ and the throttle settings by at most 0.04\,\%, and the elements of $A_W$ change by at most $6\times10^{-4}$ of its largest element; the load factor of case 5 is defined with the local $g$. \texttt{run\_MT.m} repeats the trim and linearization at conditions i, ii and iii, and the resulting wind-axis matrices are identical to those of the recomputed \texttt{HW2\_Group2.mat}.
+\emph{Corrections to Homework 2.} After the Homework 2 feedback:
+\begin{enumerate}
+\item the load factor of case 5 is now $1/\cos\mu$ (Lecture 4); before, the body-axis normal acceleration was used, which gave $1/\cos\mu=4.058$. The new trim has $\phi=75.74^\circ$ instead of $75.95^\circ$ (Table~\ref{tab:trim});
+\item the linearization lets $\delta_{lef}$ follow its schedule (it was held at the trim value); \texttt{A\_Body}, \texttt{B\_Body}, \texttt{A\_Wind} and \texttt{B\_Wind} were recomputed;
+\item the comparison of the three linear models now explains each change (above);
+\item the code was simplified: the trim, linearization and simulation are short functions, and the extra checks of Homework 2 were removed;
+\item two conventions of the Homework 2 solution manual were adopted: the mass $m=9295.4$~kg (before, $W/g_0=9298.64$~kg) and the step of $10^{-3}$ of Lecture~5 (before, $10^{-4}$ scaled by $V_T$).
+\end{enumerate}
+With these, the results agree with the solution manual. Every trim quantity is equal to the manual's or differs by one or two units in its last digit (case 5: $\alpha=0.17666$ vs.\ $0.17667$~rad, $\delta_T=81.129$ vs.\ $81.131$\,\%), and $\mu=59.922^\circ$ and $75.522^\circ$ in cases 4 and 5 are the same. Most entries of the linear models agree to the last printed digit; the only differences, of order $10^{-4}$, are in the derivatives with respect to $\beta$ (e.g., $a_{15}=0.0482$ vs.\ $0.0488$ at condition i). The aerodynamic tables have a kink at $\beta=0$, so the central difference averages the two slopes and depends slightly on the small numerical $\beta$ left at trim.
+All results were also recomputed with the revised model of Sec.~II.C, whose $g$ is 0.1\,\% smaller at 10\,000~ft; this changes the trim angles by at most $0.01^\circ$. \texttt{run\_MT.m} repeats the trim and linearization at conditions i, ii and iii and reproduces the matrices of \texttt{HW2\_Group2.mat} exactly.
 
 \section{Trimmed-Flight Simulation}
 
@@ -193,11 +227,11 @@ Condition & Duration [s] & $|\Delta V_T|$ [m/s] & $|\Delta\alpha|$ & $|\Delta\be
 \end{tabular}
 \end{table}
 
-\emph{Condition i.} The trim holds: in 60~s the speed changes by less than $4\times10^{-4}$~m/s, the attitude by about $10^{-4}$~deg and the altitude by 1~cm. The small residual motion shows the modes of Sec.~VI. $V_T$, $\theta$ and $h$ oscillate slowly with a half period of about 45~s, which is the phugoid (period 101~s). The roll and yaw rates show a decaying oscillation in the first 10~s with a period of about 1.8~s, which is the Dutch roll (1.84~s). The bank angle drifts monotonically on the time scale of the stable spiral mode ($\tau=89$~s). The motion is excited by the trim residuals and the solver start-up; all modes are stable, so it stays bounded.
+\emph{Condition i.} The trim holds: in 60~s the speed changes by less than $4\times10^{-4}$~m/s, the attitude by about $10^{-4}$~deg and the altitude by 1~cm. The small residual motion shows the modes of Sec.~VI. $V_T$, $\theta$ and $h$ oscillate slowly with a half period of about 45~s, which is the phugoid (period 88~s). The roll and yaw rates show a decaying oscillation in the first 10~s with a period of about 1.8~s, which is the Dutch roll (1.84~s). The bank angle drifts monotonically on the time scale of the stable spiral mode ($\tau=89$~s). The motion is excited by the trim residuals and the solver start-up; all modes are stable, so it stays bounded.
 
 \emph{Condition ii.} One full turn takes 73.05~s, against $2\pi/\dot\psi_1=73.04$~s from the trim solution. The ground track (Fig.~\ref{fig:track}) is a closed circle of radius 2289~m, compared with $V_T^2/(g\tan\phi)=2285$~m, and the altitude changes by 9~cm. The pitch attitude and yaw rate oscillate with a period of about 50~s, close to the 57~s period of the coupled phugoid--spiral mode of the full model (Sec.~VI); the Dutch-roll transient again decays within 10~s.
 
-\emph{Condition iii.} The deviations grow monotonically instead of oscillating: the pitch angle changes by $5.1\times10^{-4}$, $1.7\times10^{-3}$ and $3.9\times10^{-3}$~deg at 20, 40 and 60~s, while the aircraft slowly pitches down, accelerates and descends. The growth rate between 40 and 60~s is about 0.04~s$^{-1}$, which agrees with the slow unstable root $+0.044$~s$^{-1}$ (time to double about 16~s) of the full model with the LEF schedule active (Sec.~III). It does not agree with the root $+0.787$~s$^{-1}$ of the 8-state model with the LEF fixed (Sec.~VI), which would amplify a disturbance by a factor of $e^{47}$ in 60~s. The trim of condition iii is therefore an unstable equilibrium; the deviations remain small only because the initial disturbance is of the order of the trim residuals.
+\emph{Condition iii.} The deviations grow monotonically instead of oscillating: the pitch angle changes by $5.1\times10^{-4}$, $1.7\times10^{-3}$ and $3.9\times10^{-3}$~deg at 20, 40 and 60~s, while the aircraft slowly pitches down, accelerates and descends. The growth rate between 40 and 60~s is about 0.04~s$^{-1}$. This agrees with the unstable phugoid of the linear model with the scheduled LEF (Sec.~VI), $\lambda=0.034\pm0.083j$~s$^{-1}$ with $t_2=20.5$~s; its 76~s period is longer than the run, so the motion looks monotonic. The remaining difference in growth rate comes from the altitude and engine states, which the 8-state model omits. The fixed-LEF root $+0.787$~s$^{-1}$ would amplify a disturbance by a factor of $e^{47}$ in 60~s; it does not appear because the flap schedule is active in the simulation. The trim of condition iii is therefore an unstable equilibrium; the deviations remain small only because the initial disturbance is of the order of the trim residuals.
 
 \begin{figure}[hbt!]
 \centering
@@ -230,7 +264,7 @@ Condition & Duration [s] & $|\Delta V_T|$ [m/s] & $|\Delta\alpha|$ & $|\Delta\be
 \section{Stability Parameters}
 
 \subsection{Relations}
-The longitudinal state variable model of Lecture 6~\cite{lec6} (pp.~24--25), with $\Delta V_T$ in place of $\Delta u$ and $U_1=V_T$ at trim, gives
+As specified for Problem 2, this section uses the wind-axis matrix with $\delta_{lef}$ held at its trim value, so that $A$ contains the derivatives of the airframe alone; with the schedule, $a_{32}$ would also contain the flap moment $\partial C_m/\partial\delta_{lef}\cdot\partial\delta_{lef}/\partial\alpha$ (Sec.~III.B). The longitudinal state variable model of Lecture 6~\cite{lec6} (pp.~24--25), with $\Delta V_T$ in place of $\Delta u$ and $U_1=V_T$ at trim, gives
 \begin{equation}
 a_{11}=X_u+X_{T_u},\quad
 a_{31}=(M_u+M_{T_u})-\frac{M_{\dot\alpha}Z_u}{Z_{\dot\alpha}-U_1},\quad
@@ -266,14 +300,14 @@ X_{T_u}=\frac{\cos\alpha_1\cos\beta_1}{m}\frac{\partial T}{\partial V_T}\bigg|_{
 \end{equation}
 The derivative is computed by running the Propulsion block of the plant model alone, at the trim throttle and altitude and with the engine at steady state, at $M=0.6\pm0.001$. Then $X_u=a_{11}-X_{T_u}$.
 
-\emph{Trim coefficients.} From the $\dot V_T$ equation at trim, $C_{D_1}=(T_1\cos\alpha_1\cos\beta_1-mg\sin\gamma_1)/(\bar q_1S)$. From Eq.~(\ref{eq:eom}) with $\dot{\boldsymbol\omega}=0$ and $\mathbf M_T=-\boldsymbol\omega\times\mathbf h_E$, the aerodynamic pitching moment at trim balances the inertial and gyroscopic moments, $C_{m_1}=[\boldsymbol\omega_1\times(\mathbf I\boldsymbol\omega_1+\mathbf h_E)]_y/(\bar q_1S\bar c)$. Table~\ref{tab:p2trim} lists these quantities, Table~\ref{tab:aelem} the elements of $A$ that were used, and Tables~\ref{tab:params} and~\ref{tab:derivs} the results.
+\emph{Trim coefficients.} From the $\dot V_T$ equation at trim, $C_{D_1}=(T_1\cos\alpha_1\cos\beta_1-mg\sin\gamma_1)/(\bar q_1S)$, and $C_{L_1}=(mg\cos\gamma_1/\cos\phi_1-T_1\sin\alpha_1)/(\bar q_1S)$. In straight flight the aerodynamic pitching moment is zero at trim, $C_{m_1}=0$. In the turn it balances the inertial and gyroscopic moments, $C_{m_1}=[\boldsymbol\omega_1\times(\mathbf I\boldsymbol\omega_1+\mathbf h_E)]_y/(\bar q_1S\bar c)=1.0\times10^{-5}$, which is negligible and is taken as zero. Table~\ref{tab:p2trim} lists these quantities, Table~\ref{tab:aelem} the elements of $A$ that were used, and Tables~\ref{tab:params} and~\ref{tab:derivs} the results.
 
 \begin{table}[hbt!]
 \caption{\label{tab:p2trim} Trim quantities used for the derivatives}
 \centering
 \begin{tabular}{ccccc}
 \toprule
-Condition & $T_1$ [N] & $\partial T/\partial V_T$ [N\,s/m] & $C_{D_1}$ & $C_{m_1}$ \\
+Condition & $T_1$ [N] & $\partial T/\partial V_T$ [N\,s/m] & $C_{L_1}$ & $C_{D_1}$ \\
 \midrule
 \tabinput{tables/p2trim.tex}
 \bottomrule
@@ -281,7 +315,7 @@ Condition & $T_1$ [N] & $\partial T/\partial V_T$ [N\,s/m] & $C_{D_1}$ & $C_{m_1
 \end{table}
 
 \begin{table}[hbt!]
-\caption{\label{tab:aelem} Elements of the wind-axis matrix $A$ used in Problem 2}
+\caption{\label{tab:aelem} Elements of the wind-axis matrix $A$ used in Problem 2 ($\delta_{lef}$ fixed)}
 \centering
 \begin{tabular}{llccc}
 \toprule
@@ -340,7 +374,7 @@ The relations of Lecture 5 are derived for steady straight flight with $p_1=q_1=
 
 \emph{Inertial terms.} With $\boldsymbol\omega_1\neq0$, the inertial term $\boldsymbol\omega\times\mathbf I\boldsymbol\omega$ of Eq.~(\ref{eq:eom}) and the engine moment $\mathbf M_T$, together $\boldsymbol\omega\times(\mathbf I\boldsymbol\omega+\mathbf h_E)$, have a nonzero Jacobian with respect to $p$, $q$ and $r$, which appears in the rate columns of $A$ together with the aerodynamic damping. Equation~(\ref{eq:invert}) removes the $I_{xz}$ coupling but not these terms. The largest is $\partial[\boldsymbol\omega\times\mathbf I\boldsymbol\omega]_z/\partial p=(I_{yy}-I_{xx})q_1=4.67\times10^{3}$~N\,m\,s, which changes the sign of $C_{n_p}$. Adding the Jacobian back to $\mathbf I A$ gives the aerodynamic part alone (Table~\ref{tab:turnaero}); \texttt{StabDerivs} contains the values obtained from $A$ as specified.
 
-\emph{Rate terms at trim.} A speed change at constant $q_1$ changes $\hat q_1=q_1\bar c/(2U_1)$, so the rate-damping terms make $C_{m_u}$ and $C_{D_u}$ nonzero: $C_{m_u}=-C_{m_q}\hat q_1=8.37\times6.52\times10^{-4}=0.0055$, as in Table~\ref{tab:derivs}. The inertial pitching moment at trim is small, $C_{m_1}=1.0\times10^{-5}$.
+\emph{Rate terms at trim.} A speed change at constant $q_1$ changes $\hat q_1=q_1\bar c/(2U_1)$, so the rate-damping terms make $C_{m_u}$ and $C_{D_u}$ nonzero: $C_{m_u}=-C_{m_q}\hat q_1=8.37\times6.52\times10^{-4}=0.0055$, as in Table~\ref{tab:derivs}.
 
 \begin{table}[hbt!]
 \caption{\label{tab:turnaero} Rate derivatives in condition ii: from $A$ and aerodynamic part only (rad$^{-1}$)}
@@ -357,7 +391,7 @@ The relations of Lecture 5 are derived for steady straight flight with $p_1=q_1=
 \section{Dynamic Modes}
 
 \subsection{Method}
-The eigenvalues of the full matrix $A$ and of the blocks $A_{11}$ and $A_{22}$ are computed at each condition. For a complex pair $\lambda=-\zeta\omega_n\pm j\omega_n\sqrt{1-\zeta^2}$, $\omega_n=|\lambda|$, $\zeta=-\operatorname{Re}\lambda/|\lambda|$, the period is $2\pi/|\operatorname{Im}\lambda|$ and $\tau=-1/\operatorname{Re}\lambda$; for a real root $\tau=-1/\lambda$. The times to half and to double amplitude are $t_{1/2}=\tau\ln2$ ($\tau>0$) and $t_2=-\tau\ln2$ ($\tau<0$)~\cite{lec6}. In the full model the modes are identified from the eigenvectors: with $\Delta V_T$ scaled by $1/U_1$, the longitudinal share of an eigenvector is the fraction of its squared norm in the first four states. The Dutch roll is the complex pair with the smallest longitudinal share; of the other pairs the faster is the short period and the slower the phugoid; of the two remaining real roots the faster is the roll mode and the slower the spiral mode. In condition iii, where the short period splits into two real roots, they are the two real roots with the largest longitudinal share, and the unstable root is entered in \texttt{Modes\_Full} and \texttt{Modes\_Dec}.
+The eigenvalues of the full wind-axis matrix $A$ with the scheduled LEF (\texttt{A\_Wind} of Sec.~III) and of its blocks $A_{11}$ and $A_{22}$ are computed at each condition. For a complex pair $\lambda=-\zeta\omega_n\pm j\omega_n\sqrt{1-\zeta^2}$, $\omega_n=|\lambda|$, $\zeta=-\operatorname{Re}\lambda/|\lambda|$, the period is $2\pi/|\operatorname{Im}\lambda|$ and $\tau=-1/\operatorname{Re}\lambda$; for a real root $\tau=-1/\lambda$. The times to half and to double amplitude are $t_{1/2}=\tau\ln2$ ($\tau>0$) and $t_2=-\tau\ln2$ ($\tau<0$)~\cite{lec6}. In the full model the modes are identified from the eigenvectors: with $\Delta V_T$ scaled by $1/U_1$, the longitudinal share of an eigenvector is the fraction of its squared norm in the first four states, and the four roots with the largest share are taken as longitudinal. Of the longitudinal roots, the one with the largest magnitude is the short period and the remaining complex pair is the phugoid. Of the lateral-directional roots, the complex pair is the Dutch roll, and the faster and slower real roots are the roll and spiral modes. The decoupled blocks are classified in the same way.
 
 \begin{table}[hbt!]
 \caption{\label{tab:modes} Modes of the full $8\times8$ model (\texttt{Modes\_Full}); times in s, $\omega_n$ in rad/s}
@@ -369,6 +403,7 @@ Cond. & Mode & $\lambda$ [s$^{-1}$] & $\omega_n$ & $\zeta$ & Period & $\tau$ & $
 \midrule
 \tabinput{tables/modes.tex}
 \bottomrule
+\multicolumn{9}{l}{\footnotesize $^a$The short period splits into two real roots, $-1.978$ and $-0.0751$~s$^{-1}$; the faster one is entered.}
 \end{tabular}
 \end{table}
 
@@ -393,22 +428,22 @@ Mode & $\lambda$ [s$^{-1}$] & $\omega_n$ & $\zeta$ & Period & $\tau$ & $t_{1/2}$
 \end{figure}
 
 \subsection{Comparison of the conditions}
-Table~\ref{tab:modes} and Fig.~\ref{fig:eig} give the results. In condition i all modes are stable and classical: a well-damped short period ($\omega_n=2.53$~rad/s, $\zeta=0.52$), a lightly damped phugoid with a 101~s period, a fast roll subsidence ($\tau=0.29$~s), a stable spiral ($t_{1/2}=61$~s) and a lightly damped Dutch roll ($\omega_n=3.44$~rad/s, $\zeta=0.12$).
+Table~\ref{tab:modes} and Fig.~\ref{fig:eig} give the results. In condition i all modes are stable and classical: a well-damped short period ($\omega_n=2.85$~rad/s, $\zeta=0.45$), a lightly damped phugoid with an 88~s period, a fast roll subsidence ($\tau=0.29$~s), a stable spiral ($t_{1/2}=61$~s) and a lightly damped Dutch roll ($\omega_n=3.44$~rad/s, $\zeta=0.12$). The LEF schedule raises the short-period frequency from 2.53 to 2.85~rad/s (fixed flap: $-1.311\pm2.166j$), because the flap adds pitch stiffness.
 
-Moving the center of gravity to $0.35\bar c$ (condition iii) changes the sign of $M_\alpha$, and the short-period pair splits into $+0.787$ and $-2.813$~s$^{-1}$. A disturbance doubles in 0.88~s, so the bare airframe with the LEF fixed cannot be flown without the flight control system. The lower static and directional stability also lengthens the phugoid period to 72~s and lowers the Dutch-roll frequency to 3.12~rad/s; the roll and spiral modes change little.
+Moving the center of gravity to $0.35\bar c$ (condition iii) makes $a_{32}$ positive (Table~\ref{tab:alin}). The short-period pair splits into two real roots: a fast stable root at $-1.978$~s$^{-1}$ and a slow root at $-0.075$~s$^{-1}$. The slow root is close to the phugoid and couples with it, and the phugoid pair moves into the right half-plane, $0.034\pm0.083j$~s$^{-1}$ ($\zeta=-0.38$, $t_2=20.5$~s). This slow oscillatory divergence is what the simulation of Sec.~IV shows. With the flap fixed, the airframe alone has $M_\alpha=+3.47$~s$^{-2}$ and an unstable root at $+0.787$~s$^{-1}$ ($t_2=0.88$~s); the LEF schedule reduces the pitch stiffness to $a_{32}=+1.06$~s$^{-2}$, which is enough to move this root back to the left half-plane, but not to make the aircraft statically stable. The lower directional stability lowers the Dutch-roll frequency to 3.12~rad/s, and the roll and spiral modes change little.
 
-In the turn (condition ii) the fast modes change little from condition i; the Dutch-roll damping rises to 0.14 and the roll mode slows to $\tau=0.32$~s. The slow modes change most, because of the coupling discussed below.
+In the turn (condition ii) the fast modes change little from condition i: the short period is slightly stiffer ($\omega_n=2.96$~rad/s), the Dutch-roll damping rises to 0.14 and the roll mode slows to $\tau=0.32$~s. The slow modes change most, because of the coupling discussed below.
 
-For reference, against the MIL-F-8785C limits for a Class IV aircraft in a Category B flight phase~\cite{lec7}, conditions i and ii meet the Level~1 limits for the short-period damping ($0.30\le\zeta\le2$), the phugoid damping ($\zeta>0.04$), the Dutch roll ($\zeta\ge0.08$, $\zeta\omega_n\ge0.15$, $\omega_n\ge0.4$) and the roll time constant ($\tau\le1.4$~s), and have stable spiral modes. The unstable short-period root of condition iii, with $t_2=0.88$~s, does not even meet the Level~3 requirement of $t_2\ge6$~s.
+For reference, against the MIL-F-8785C limits for a Class IV aircraft in a Category B flight phase~\cite{lec7}, conditions i and ii meet the Level~1 limits for the short-period damping ($0.30\le\zeta\le2$), the phugoid damping ($\zeta>0.04$), the Dutch roll ($\zeta\ge0.08$, $\zeta\omega_n\ge0.15$, $\omega_n\ge0.4$) and the roll time constant ($\tau\le1.4$~s), and have stable spiral modes. The unstable phugoid of condition iii, with $t_2=20.5$~s, does not meet the Level~3 requirement of $T_2\ge55$~s, so condition iii needs the flight control system even with the LEF schedule.
 
 \subsection{Full and decoupled models}
-In straight flight (i and iii) the coupling blocks $A_{12}$ and $A_{21}$ are zero, and the modes of the full model and of the decoupled blocks agree to a relative difference of about $10^{-5}$. In the turn, the coupling blocks are not zero: the bank angle enters the vertical force balance ($\partial\dot V_T/\partial\phi=-0.673$, $\partial\dot V_T/\partial\beta=8.56$), and the trim rates link pitch and yaw. The fast modes are almost unaffected (Table~\ref{tab:modesdec}), but the phugoid and spiral modes, whose frequencies are close, interact. In the full model the phugoid period drops from 120~s to 57~s and its damping from 0.21 to 0.10, and the spiral time constant changes from 126~s to 117~s. The eigenvectors confirm the mixing: the longitudinal share is 0.68 for the phugoid pair and 0.53 for the spiral root. Physically, a change of bank in the turn changes the vertical component of the lift and starts a climb or descent with a speed change, and the resulting speed and pitch changes alter the turn. The decoupled blocks therefore misrepresent the slow dynamics in turning flight, and the full model must be used.
+In straight flight (i and iii) the coupling blocks $A_{12}$ and $A_{21}$ are zero, and the modes of the full model and of the decoupled blocks agree to a relative difference of about $10^{-5}$. In the turn, the coupling blocks are not zero: the bank angle enters the vertical force balance ($\partial\dot V_T/\partial\phi=-0.673$, $\partial\dot V_T/\partial\beta=8.56$), and the trim rates link pitch and yaw. The fast modes are almost unaffected (Table~\ref{tab:modesdec}), but the phugoid and spiral modes, whose frequencies are close, interact. In the full model the phugoid period drops from 111~s to 57~s and its damping from 0.21 to 0.10, and the spiral time constant changes from 126~s to 116~s. The eigenvectors confirm the mixing: the longitudinal share is 0.68 for the phugoid pair and 0.48 for the spiral root. Physically, a change of bank in the turn changes the vertical component of the lift and starts a climb or descent with a speed change, and the resulting speed and pitch changes alter the turn. The decoupled blocks therefore misrepresent the slow dynamics in turning flight, and the full model must be used.
 
 \section{Conclusions}
 \begin{enumerate}
 \item The Homework 1 model, trimmed in Homework 2, holds the trim in wings-level flight and through a complete $60^\circ$ banked turn with fixed controls: deviations stay below $10^{-2}$~m/s and $10^{-3}$~deg, and the turn reproduces the trim turn rate and the theoretical turn radius within 0.2\,\%.
 \item The residual motions in the simulations show the dynamic modes: the phugoid and the decaying Dutch roll in condition i, and the coupled phugoid--spiral oscillation in condition ii.
-\item With the center of gravity at $0.35\bar c$ the aircraft is statically unstable in pitch ($C_{m_\alpha}=+0.156$~rad$^{-1}$, neutral point near $0.31\bar c$); the short-period mode of the 8-state model splits into an unstable root with $t_2=0.88$~s. The LEF schedule of the nonlinear model reduces this to a slow divergence ($+0.044$~s$^{-1}$), which appears in the simulation.
+\item With the center of gravity at $0.35\bar c$ the aircraft is statically unstable in pitch ($C_{m_\alpha}=+0.156$~rad$^{-1}$, neutral point near $0.31\bar c$). With the LEF schedule in the linear model, the short period splits into two stable real roots and the phugoid becomes unstable ($t_2=20.5$~s), which matches the slow divergence of the simulation; with the flap fixed, the airframe has an unstable root with $t_2=0.88$~s.
 \item All derivatives have their normal signs at the forward center of gravity. $C_{D_u}$ and $C_{m_u}$ vanish in straight flight because the data do not depend on Mach number; the thrust adds a nonzero $X_{T_u}$.
 \item In turning flight the elements of $A$ contain inertial and gyroscopic terms in addition to the aerodynamic derivatives, and the slow longitudinal and lateral-directional modes are coupled; the full model is needed there.
 \end{enumerate}
