@@ -3,7 +3,7 @@
 UUM523E Advanced Flight Dynamics, İTÜ, Güz 2026 — Grup 2
 Dilan Gelturan, Emirhan Oskay, Emircan Sürücü, Berat Alku
 
-HW-2 (trim ve doğrusallaştırma) en sondaki [HW-2](#hw-2-trim-ve-doğrusallaştırma) bölümünde.
+HW-2 (trim ve doğrusallaştırma) en sondaki [HW-2](#hw-2-trim-ve-doğrusallaştırma) bölümünde. Midterm Project ayrı dosyada: [README_Midterm.md](README_Midterm.md).
 
 ## Genel tanım
 
@@ -617,28 +617,9 @@ LEF tarifesinin etkisi: flap α arttıkça burun aşağı moment ekler, q̇/α t
 - **Trim (Tablo 2–5).** Bütün durumlarda bütün büyüklükler kılavuzla aynı ya da yalnızca kılavuzun son basamağında 1–2 birim farklı (ör. Durum 5: α 0.17666 / 0.17667 rad, δT 81.129 / 81.131 %, δlef 13.136° / 13.137°). Durum 4 ve 5'te μ = 59.922° ve 75.522°, kılavuzla aynı.
 - **A ve B (Tablo 6–11).** Elemanların çoğu kılavuzla son basamağa kadar aynı. Farklar yalnızca β'ya göre türevlerde, 10⁻⁴ mertebesinde (ör. A_Wind(i) a15: 0.0482 / 0.0488, A_Body(i) ∂ẇ/∂v: −0.0008 / 0.0017). Bunlar tabloların β = 0'daki kırılmasından gelir: merkezi fark, kırılmanın iki yanındaki eğimlerin ortalamasıdır ve trimdeki küçük β artığına duyarlıdır.
 
-## Midterm Project: Trimde uçuş benzetimi ve kararlılık analizi
+## Midterm Project
 
-### Dosyalar
-
-| Dosya / klasör | İçerik |
-|---|---|
-| `run_MT.m` | Projenin bütün sonuçlarını üretir: Problem 1 benzetimleri, Problem 2 kararlılık parametreleri ve türevler, Problem 3 modları, grafikler ve sonuç dosyası. |
-| `MT_Group2.mat` | Sonuç dosyası. Yalnızca `Sim_i`, `Sim_ii`, `Sim_iii`, `StabParams`, `StabDerivs`, `Eig_Full`, `Eig_Lon`, `Eig_Lat`, `Modes_Full`, `Modes_Dec` değişkenlerini içerir. |
-| `figures/MT_*.png` | Benzetim zaman geçmişleri, ii koşulunun yer izi, özdeğer grafikleri. |
-| `report/`, `tr_report/` | AIAA şablonunda rapor (İngilizce/Türkçe). Overleaf'te `new-aiaa.cls` ile derlenir. |
-| `presentation/` | Sunum (EN/TR), `.pptx` ve `.pdf`. |
-
-### Çalıştırma
-
-`run_MT` yazın (yaklaşık 2 dakika). Script:
-
-1. i, ii, iii koşullarını trim eder ve iki rüzgâr ekseni modeli kurar: `A_sch` (δlef tarifeli, `HW2_Group2.mat` ile aynı) ve `A_fix` (δlef sabit).
-2. **Problem 1:** modeli trimden başlatır, kumandalar sabit; i ve iii 60 s, ii bir tam tur (360°). Sonuçlar 0.01 s aralıkla `Sim_*`'a yazılır.
-3. **Problem 2:** ödevde istendiği gibi `A_fix`'ten kararlılık parametrelerini ve boyutsuz türevleri hesaplar; X_Tu, Propulsion alt sistemi tek başına çalıştırılarak bulunur.
-4. **Problem 3:** `A_sch`'in tam 8×8 ve ayrık (A11, A22) özdeğerlerini ve mod özelliklerini hesaplar.
-5. `MT_Group2.mat`'ı kaydeder.
-
+Dosyalar, çalıştırma, sonuç dosyası ve sonuçların özeti için bkz. [README_Midterm.md](README_Midterm.md).
 
 ## Kaynaklar
 

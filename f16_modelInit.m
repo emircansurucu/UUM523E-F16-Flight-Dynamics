@@ -30,9 +30,6 @@ M.xcg = xcg;
 M.thr_BP = evalin('base', 'thr_BP');
 M.P1_tab = evalin('base', 'P1_tab');
 M.g      = evalin('base', 'g');       % deniz seviyesi (ilk tahminler)
-M.g0     = evalin('base', 'g0');
-M.Re     = evalin('base', 'Re_SI');
-M.gh     = @(h) M.g0*(M.Re./(M.Re + h)).^2;   % modeldeki g(h) (Atmosphere)
 
 F16_6DOF([], [], [], 'compile');
 end
