@@ -25,7 +25,7 @@
   \renewcommand\tablename{Tablo}%
   \renewcommand\refname{Kaynaklar}}
 
-\title{F-16 Uçak Modeli, Trim, Trim Uçuşu Benzetimi ve Kararlılık Analizi}
+\title{Bir F-16 Uçağının Doğrusal Olmayan Simulink Modeli, Trimi, Doğrusallaştırılması ve Kararlılık Analizi}
 
 \author{Dilan Gelturan, Emirhan Oskay, Emircan Sürücü ve Berat Alku\footnote{Yüksek lisans öğrencileri, Uçak ve Uzay Bilimleri Fakültesi; UUM 523E İleri Uçuş Dinamiği, Grup 2.}}
 \affil{İstanbul Teknik Üniversitesi, 34469 Maslak, İstanbul, Türkiye}
@@ -35,101 +35,311 @@
 \maketitle
 
 \begin{abstract}
-NASA TP-1538 aerodinamik ve motor verilerinden Simulink'te altı serbestlik dereceli, doğrusal olmayan bir F-16 modeli kurulmuş, kısıtlı bir eniyileme yöntemiyle trimlenmiş ve gövde ile rüzgâr eksenlerinde sayısal olarak doğrusallaştırılmıştır. Bu raporda bu çalışma özetlenmekte ve 0,6 Mach ile 10\,000 ft'te üç trim koşulu incelenmektedir: ağırlık merkezi $0,25\bar c$'de kanatlar düz uçuş (i), $60^\circ$ yatışlı düz dönüş (ii) ve ağırlık merkezi $0,35\bar c$'de kanatlar düz uçuş (iii). Trim noktalarından kumandalar sabit tutularak başlatılan doğrusal olmayan model, i ve ii koşullarında 60~s boyunca ve bir tam dönüş süresince trimi korumaktadır; sapmalar $10^{-2}$~m/s ve $10^{-3}$ derecenin altındadır. iii koşulunda ise durumlar yavaşça ıraksamaktadır. Kararlılık parametreleri ve boyutsuz türevler rüzgâr ekseni durum matrislerinden çıkarılmış; yuvarlanma ve sapma satırlarındaki eylemsizlik bağlaşımı ayrıştırılmış, itkinin hız sönümüne katkısı motor modelinden hesaplanmıştır. iii koşulunda uçak boyuna eksende statik olarak kararsızdır ($C_{m_\alpha}=+0,156$~rad$^{-1}$). Doğrusal modelde hücum kenarı flapı tarifesini izlediğinde kısa periyot iki kararlı gerçel köke ayrılır ve fugoid kararsız hâle gelir (genliğin iki katına çıkma süresi 20,5~s); bu, benzetimde görülen yavaş ıraksamayı açıklar. Flap sabit tutulduğunda ise iki katına çıkma süresi 0,88~s olan kararsız bir kök ortaya çıkar. Dönüşte trim açısal hızları durum matrisine eylemsizlik terimleri ekler ve fugoid ile spiral modlarını birbirine bağlar; bu bağlaşım fugoid periyodunu 111~s'den 57~s'ye kısaltır.
+Bu raporda, NASA TP-1538'in F-16 aerodinamik ve motor verileriyle Simulink'te kurduğumuz altı serbestlik dereceli, doğrusal olmayan uçak modeli ve bu model üzerinde yaptığımız analizler anlatılmaktadır. Model, düz ve dönmeyen Dünya üzerindeki rijit cisim hareket denklemlerinden, standart atmosferden, 68 arama tablosuyla kurulan aerodinamik katsayı yapısından, güç gecikmeli bir motor modelinden, konum ve hız sınırlı yüzey eyleyicilerinden ve hücum kenarı flapı (LEF) tarifesinden oluşur; Aerospace Blockset kullanılmamıştır. Model, ders verileriyle verilen 15 doğrulama durumunun hepsinde referans değerleri verir. Trim, ders notlarındaki kısıtlı eniyileme problemi olarak \texttt{fmincon} ile çözülmüş, doğrusal modeller aynı Simulink modelinden merkezi farklarla elde edilmiştir. Ara Proje kapsamında 0,6 Mach ve 10\,000 ft'te üç koşul incelenmiştir: ağırlık merkezi $0,25\bar c$'de kanatlar düz uçuş (i), $60^\circ$ yatışlı düz dönüş (ii) ve ağırlık merkezi $0,35\bar c$'de kanatlar düz uçuş (iii). Kumandalar trimde sabitken model i ve ii koşullarında trimi korur; iii koşulunda durumlar yavaşça ıraksar. Rüzgâr ekseni durum matrislerinden çıkarılan türevler iii koşulunda uçağın yunuslamada statik olarak kararsız olduğunu gösterir ($C_{m_\alpha}=+0,156$~rad$^{-1}$). LEF tarifesi doğrusal modele katıldığında bu koşulda fugoid kararsızdır (iki katına çıkma süresi 20,5~s); flap sabitken kararsız kökün iki katına çıkma süresi 0,88~s'dir. Dönüşte trim açısal hızları fugoid ile spiral modlarını bağlar ve fugoid periyodunu 111~s'den 57~s'ye kısaltır.
 \end{abstract}
 
 \section*{Semboller}
 
 {\renewcommand\arraystretch{1.0}
 \noindent\begin{longtable*}{@{}l @{\quad=\quad} l@{}}
-$A$, $B$ & doğrusal modelin durum ve giriş matrisleri \\
-$a_{ij}$ & $A$'nın $(i,j)$ elemanı \\
+$A$, $B$; $a_{ij}$, $b_{ij}$ & doğrusal modelin durum ve giriş matrisleri; $(i,j)$ elemanları \\
 $b$, $\bar c$, $S$ & kanat açıklığı, ortalama aerodinamik veter, kanat alanı; m, m, m$^2$ \\
-$C_D$, $C_L$ & sürükleme ve kaldırma katsayıları \\
+$C_X$, $C_Y$, $C_Z$; $C_D$, $C_L$ & gövde ekseni kuvvet katsayıları; sürükleme ve kaldırma katsayıları \\
 $C_l$, $C_m$, $C_n$ & yuvarlanma, yunuslama ve sapma momenti katsayıları \\
-$C_{D_u}$, $C_{m_u}$ & $\Delta V_T/U_1$'e göre türevler \\
-$C_{(\cdot)_\alpha}$, $C_{(\cdot)_\beta}$ & $\alpha$ ve $\beta$'ya göre türevler, rad$^{-1}$ \\
-$C_{(\cdot)_q}$ & $q\bar c/(2U_1)$'e göre türev, rad$^{-1}$ \\
-$C_{(\cdot)_p}$, $C_{(\cdot)_r}$ & $pb/(2U_1)$ ve $rb/(2U_1)$'e göre türevler, rad$^{-1}$ \\
-$h$ & irtifa, m \\
-$h_E$ & motorun açısal momentumu, kg\,m$^2$/s \\
-$I_{xx}$, $I_{yy}$, $I_{zz}$, $I_{xz}$ & eylemsizlik momentleri ve çarpımı (gövde ekseni), kg\,m$^2$ \\
+$C_{(\cdot)_u}$, $C_{(\cdot)_\alpha}$, $C_{(\cdot)_\beta}$ & $\Delta V_T/U_1$, $\alpha$ ve $\beta$'ya göre türevler, rad$^{-1}$ \\
+$C_{(\cdot)_q}$, $C_{(\cdot)_p}$, $C_{(\cdot)_r}$ & $q\bar c/(2U_1)$, $pb/(2U_1)$ ve $rb/(2U_1)$'e göre türevler, rad$^{-1}$ \\
+$\mathbf F$, $\mathbf M$ & gövde ekseninde toplam kuvvet ve moment, N, N\,m \\
+$g$, $J$ & yerçekimi ivmesi, m/s$^2$; trim maliyet fonksiyonu \\
+$h$, $h_E$ & irtifa, m; motorun açısal momentumu, kg\,m$^2$/s \\
+$\mathbf I$ & eylemsizlik matrisi; $I_{xx}$, $I_{yy}$, $I_{zz}$, $I_{xz}$ elemanları, kg\,m$^2$ \\
 $L_{(\cdot)}$, $M_{(\cdot)}$, $N_{(\cdot)}$ & yuvarlanma, yunuslama ve sapma kararlılık parametreleri \\
-$m$ & uçak kütlesi, kg \\
-$n_z$ & normal yük faktörü \\
+$M$, $m$, $n_z$ & Mach sayısı; uçak kütlesi, kg; normal yük faktörü \\
+$P_c$, $P_3$ & motor güç komutu ve güç seviyesi, \% \\
 $p$, $q$, $r$ & gövde ekseni yuvarlanma, yunuslama ve sapma hızları, rad/s \\
-$\bar q$ & dinamik basınç, Pa \\
+$p_s$, $\bar q$, $\rho$ & statik ve dinamik basınç, Pa; hava yoğunluğu, kg/m$^3$ \\
 $T$ & itki, N \\
 $t_{1/2}$, $t_2$ & genliğin yarıya inme ve iki katına çıkma süreleri, s \\
-$U_1$ & trimdeki toplam hız, m/s \\
 $u$, $v$, $w$ & gövde ekseni hız bileşenleri, m/s \\
-$V_T$ & toplam hız, m/s \\
+$V_T$, $U_1$ & toplam hız ve trimdeki değeri, m/s \\
 $X_u$, $X_{T_u}$ & aerodinamik ve itki kaynaklı hız sönümü parametreleri, s$^{-1}$ \\
-$x_N$, $y_E$ & kuzey ve doğu konumları, m \\
-$x_{cg}$ & ağırlık merkezinin konumu, $\bar c$ cinsinden \\
+$x_N$, $y_E$, $z_E$ & kuzey, doğu ve aşağı konumları, m \\
+$x_{cg}$, $x_{cg,ref}$ & ağırlık merkezi ve verilerin referans noktası, $\bar c$ cinsinden \\
 $\alpha$, $\beta$ & hücum açısı ve yan kayma açısı, rad \\
-$\gamma$ & uçuş yolu açısı, rad \\
-$\delta_T$ & gaz kolu konumu, \% \\
-$\delta_h$, $\delta_a$, $\delta_r$, $\delta_{lef}$ & stabilatör, kanatçık, dümen ve hücum kenarı flapı (LEF) açıları, rad \\
-$\zeta$, $\omega_n$ & sönüm oranı, doğal frekans (rad/s) \\
-$\lambda$ & özdeğer, s$^{-1}$ \\
+$\gamma$, $\mu$ & uçuş yolu açısı ve rüzgâr ekseni yatış açısı, rad \\
+$\delta_T$; $\delta_h$, $\delta_a$, $\delta_r$ & gaz kolu, \%; stabilatör, kanatçık ve dümen açıları, rad \\
+$\delta_{lef}$, $\delta_{sb}$ & hücum kenarı flapı ve hava freni açıları, derece \\
+$\lambda$, $\zeta$, $\omega_n$ & özdeğer (s$^{-1}$), sönüm oranı, doğal frekans (rad/s) \\
+$\Lambda$ & LEF ağırlığı, $1-\delta_{lef}/25^\circ$ \\
 $\tau$ & zaman sabiti, s \\
 $\phi$, $\theta$, $\psi$ & yatış, yunuslama ve yön açıları, rad \\
 $\boldsymbol\omega$ & gövde açısal hız vektörü $[p\ q\ r]^T$, rad/s \\
 \multicolumn{2}{@{}l}{\emph{Alt indisler}}\\
 $1$ & trim (kararlı hâl) değeri \\
-$T$ & itki katkısı \\
+$A$, $T$, $G$ & aerodinamik, itki ve yerçekimi katkıları \\
 \end{longtable*}}
 
 \section{Giriş}
 
-\lettrine{B}{u} rapor, UUM 523E dersinin dönem projesini üç adımda sunmaktadır. Ödev~1'de NASA TP-1538'in~\cite{tp1538} aerodinamik ve motor verileri, Stevens, Lewis ve Johnson'ın~\cite{slj} atmosfer modeli ve hareket denklemleriyle Simulink'te altı serbestlik dereceli, doğrusal olmayan bir F-16 modeli kurulmuştur. Ödev~2'de model altı uçuş koşulunda trimlenmiş ve bunların üçünde doğrusallaştırılmıştır. Ara Proje bu sonuçları, hepsi 0,6 Mach, 10\,000~ft ve $\gamma=0$ olan üç trim koşulunda kullanır:
+\lettrine{B}{u} çalışmanın amacı, F-16 uçağının uçuş dinamiğini kendi kurduğumuz bir benzetim modeli üzerinden incelemektir. Model ve analizler UUM 523E dersinde üç adımda geliştirilmiştir. Ödev~1'de NASA TP-1538'in~\cite{tp1538} aerodinamik ve motor verileri, Stevens, Lewis ve Johnson'ın~\cite{slj} atmosfer modeli ve hareket denklemleriyle Simulink'te altı serbestlik dereceli, doğrusal olmayan bir uçak modeli (\texttt{F16\_6DOF.slx}) kurulmuştur. Ödev~2'de bu model altı uçuş koşulunda trimlenmiş ve üç koşulda doğrusallaştırılmıştır. Ara Proje, bu iki adımın sonuçlarını kullanarak uçağın trim noktası etrafındaki davranışını üç soru üzerinden inceler:
+\begin{itemize}
+\item \emph{Problem 1:} doğrusal olmayan model, kumandalar sabitken trim noktasında kalıyor mu? (Bölüm~IV)
+\item \emph{Problem 2:} doğrusal modelden hangi kararlılık parametreleri ve boyutsuz türevler çıkıyor, uçak statik olarak kararlı mı? (Bölüm~V)
+\item \emph{Problem 3:} uçağın dinamik modları nelerdir ve tam model ile ayrık boyuna ve yanal-yönsel modeller ne zaman aynı sonucu verir? (Bölüm~VI)
+\end{itemize}
+Üç problem de 0,6 Mach, 10\,000~ft ve $\gamma=0$ olan üç trim koşulunda çözülür:
 \begin{enumerate}
 \item[i.] kanatlar düz uçuş, $x_{cg}=0,25\bar c$;
 \item[ii.] $\phi=60^\circ$ ve $\beta=0$ ile kararlı düz dönüş, $x_{cg}=0,25\bar c$;
 \item[iii.] kanatlar düz uçuş, $x_{cg}=0,35\bar c$.
 \end{enumerate}
-Önce doğrusal olmayan model her trim noktasından kumandalar sabitken uçurulmuştur (Bölüm~IV). Ardından kararlılık parametreleri ve boyutsuz türevler rüzgâr ekseni durum matrislerinden çıkarılmış (Bölüm~V), dinamik modlar tam ve ayrık matrislerden hesaplanmıştır (Bölüm~VI). Bölüm~II ve III, bu analizlerin dayandığı uçak modelini ve trim ile doğrusallaştırma çalışmasını özetler.
 
-Bütün analizler, Ödev~1'in modelini (\texttt{F16\_6DOF.slx}, R2023a'da kaydedilmiş; Ödev~1 geri bildirimine göre Bölüm~II.C'de anlatıldığı gibi düzeltilmiş) çağıran MATLAB m-dosyalarıyla yapılmıştır: \texttt{run\_HW1.m}, \texttt{run\_HW2.m} ve sonuç dosyası \texttt{MT\_Group2.mat}'ı yazan \texttt{run\_MT.m}. Bütün büyüklükler SI birimlerindedir; aksi belirtilmedikçe açılar radyandır.
+Bölüm~II, modeli temel denklemlerden başlayarak alt sistem alt sistem anlatır ve Simulink'teki karşılığını gösterir; Ödev~1'in doğrulama sonuçları ve geri bildirimden sonra yapılan düzeltmeler de bu bölümdedir. Bölüm~III trim problemini, doğrusallaştırmayı ve Ödev~2'deki düzeltmeleri verir. Bölüm~IV--VI Ara Projenin üç problemini çözer. Bütün analizler aynı modeli çağıran MATLAB m-dosyalarıyla yapılmıştır: \texttt{run\_HW1.m}, \texttt{run\_HW2.m} ve sonuç dosyası \texttt{MT\_Group2.mat}'ı yazan \texttt{run\_MT.m}. Model R2023a'da kaydedilmiştir. Bütün büyüklükler SI birimlerindedir; aksi belirtilmedikçe açılar radyandır.
 
 \section{Uçak Modeli}
 
-\subsection{Yapı}
-Model (Şekil~\ref{fig:model}), Aerospace Blockset kullanılmadan temel Simulink bloklarıyla kurulmuş altı alt sistemden oluşur: Atmosfer, Aerodinamik, İtki, Kütle ve Eylemsizlik, Eyleyiciler ve Hareket Denklemleri. Hücum kenarı flapı (LEF) tarifesi kök seviyededir; Aerodinamik, İtki ile Kütle ve Eylemsizlik alt sistemleri kendi gövde ekseni kuvvet ve momentlerini verir, bunlar Hareket Denklemleri alt sisteminde toplanır. Kütle, eylemsizlik ve geometri TP-1538 Tablo~I'deki~\cite{tp1538} değerlerin SI karşılıklarıdır: $m=9295,4$~kg, $S=27,871$~m$^2$, $b=9,144$~m, $\bar c=3,4503$~m, $I_{xx}=12\,875$, $I_{yy}=75\,674$, $I_{zz}=85\,552$, $I_{xz}=1331,4$~kg\,m$^2$ ve $h_E=216,93$~kg\,m$^2$/s.
+\subsection{Kabuller, eksenler ve durumlar}
+Uçak sabit kütleli bir rijit cisim olarak modellenir. Dünya düz ve dönmeyen kabul edilir; rüzgâr yoktur, dolayısıyla havaya göre hız yere göre hızla aynıdır. Gövde eksen takımının başlangıcı ağırlık merkezindedir: $x$ ekseni burna, $y$ ekseni sağ kanada, $z$ ekseni aşağı doğrudur. Konum, kuzey--doğu--aşağı (NED) yer ekseninde tutulur ve irtifa $h=-z_E$'dir. Gövdenin yere göre yönelimi $\psi$, $\theta$, $\phi$ sırasıyla Euler açılarıyla verilir.
+
+Simulink modelinin 18 durumu vardır: rijit cismin 12 durumu ($u$, $v$, $w$; $p$, $q$, $r$; $\phi$, $\theta$, $\psi$; $x_N$, $y_E$, $z_E$), dört eyleyici ($\delta_h$, $\delta_a$, $\delta_r$, $\delta_{lef}$), motor güç seviyesi $P_3$ ve LEF tarifesindeki filtrenin durumu. Beş girişi stabilatör, kanatçık ve dümen komutları, hava freni (derece) ve gaz kolu (\%) konumudur. Hava freni bütün analizlerde kapalıdır ($\delta_{sb}=0$). Modelin kök seviyesi Şekil~\ref{fig:model}'dedir; aşağıdaki alt bölümler her alt sistemin denklemlerini ve Simulink'teki karşılığını verir, Bölüm~II.G ise bunların nasıl birbirine bağlandığını anlatır.
 
 \begin{figure}[hbt!]
 \centering
 \includegraphics[width=\textwidth]{figures/MT_RootModel.png}
-\caption{Bölüm~II.C'deki düzeltmelerden sonra F-16 Simulink modelinin kök seviyesi.}
+\caption{F-16 Simulink modelinin kök seviyesi (Ödev~1 düzeltmelerinden sonra).}
 \label{fig:model}
 \end{figure}
 
-\subsection{Alt sistemler}
-\emph{Atmosfer.} Ref.~\cite{slj}, Ek A.6'daki standart atmosfer yoğunluğu, ses hızını, Mach sayısını, statik basıncı ve dinamik basıncı verir; $\alpha=\operatorname{atan2}(w,u)$ ve $\beta=\arcsin(v/V_T)$'dir. Alt sistem ayrıca yerçekimi ivmesini $g=g_0[R_e/(R_e+h)]^2$ olarak verir; $g_0=9,80665$~m/s$^2$, $R_e=6,371\times10^6$~m'dir.
-
-\emph{Aerodinamik.} Gövde eksenindeki altı katsayı TP-1538'in yapısını izler~\cite{tp1538}: $\alpha$, $\beta$ ve $\delta_h$'ye bağlı temel tablolar, $(1-\delta_{lef}/25^\circ)$ ile ağırlıklandırılan LEF artımları, kumanda ve hava freni artımları ile $q\bar c/(2V_T)$, $pb/(2V_T)$ ve $rb/(2V_T)$'ye bağlı sönüm terimleri; toplam 68 arama tablosu. Veriler $0,35\bar c$'ye göre verilmiştir; momentler gerçek ağırlık merkezine $C_m \leftarrow C_m + C_Z(0,35-x_{cg})$ ve $C_n \leftarrow C_n - C_Y(0,35-x_{cg})\bar c/b$ ile taşınır~\cite{slj}.
-
-\emph{İtki.} Gaz kolu dişlisi $\delta_T$'yi güç komutuna çevirir (\%77 askerî güce karşılık gelir); güce bağlı zaman sabitli birinci mertebe bir gecikme güç seviyesi $P_3$'ü verir ve itki, Mach sayısı ile irtifaya bağlı rölanti, askerî ve azami güç tabloları arasında aradeğerlenir~\cite{tp1538}. İtki $\mathbf F_T=[T\ 0\ 0]^T$, gövde $x$ ekseni boyunca ve ağırlık merkezinden etki eder. Alt sistem ayrıca motorun jiroskopik momentini verir: $\mathbf M_T=-\boldsymbol\omega\times\mathbf h_E=[0\ \ {-r}h_E\ \ qh_E]^T$, $\mathbf h_E=[h_E\ 0\ 0]^T$.
-
-\emph{Kütle ve eylemsizlik.} Alt sistem, Atmosfer'den gelen $g$ ile yerçekimi kuvvetini $\mathbf F_G=mg[-\sin\theta\ \ \sin\phi\cos\theta\ \ \cos\phi\cos\theta]^T$ olarak hesaplar; ayrıca Aerodinamik alt sisteminin ve hareket denklemlerinin kullandığı kütleyi, eylemsizlik matrisini ve ağırlık merkezi konumunu verir.
-
-\emph{Eyleyiciler.} Stabilatör, kanatçık, dümen ve LEF eyleyicilerinin her biri ayrı bir alt sistemdir; her biri konum ve hız sınırlı birinci mertebe bir gecikmedir (zaman sabitleri 0,0495~s, LEF için 0,136~s)~\cite{tp1538}.
-
-\emph{Hareket denklemleri.} Düz ve dönmeyen bir Dünya üzerinde sabit kütleli rijit bir uçak için~\cite{slj}
+\subsection{Hareket denklemleri}
+Gövde ekseninde $\mathbf v=[u\ v\ w]^T$ ve $\boldsymbol\omega=[p\ q\ r]^T$ için Newton ve Euler denklemleri~\cite{slj}
 \begin{equation}
 m(\dot{\mathbf v}+\boldsymbol\omega\times\mathbf v)=\mathbf F_A+\mathbf F_T+\mathbf F_G, \qquad
 \mathbf I\dot{\boldsymbol\omega}+\boldsymbol\omega\times\mathbf I\boldsymbol\omega=\mathbf M_A+\mathbf M_T
 \label{eq:eom}
 \end{equation}
-yazılır; bunlara Euler açısı kinematiği ve kuzey--doğu--aşağı konum denklemleri eşlik eder. Kuvvet ve momentler bu alt sistemin içinde toplanır.
+şeklindedir. Toplam kuvvet $\mathbf F=[F_x\ F_y\ F_z]^T$ için öteleme denklemleri
+\begin{equation}
+\dot u=\frac{F_x}{m}+rv-qw,\qquad
+\dot v=\frac{F_y}{m}+pw-ru,\qquad
+\dot w=\frac{F_z}{m}+qu-pv
+\end{equation}
+olur. Uçak $x$--$z$ düzlemine göre simetrik olduğundan eylemsizlik matrisinde yalnızca $I_{xz}$ çarpımı kalır:
+\begin{equation}
+\mathbf I=\begin{bmatrix} I_{xx} & 0 & -I_{xz}\\ 0 & I_{yy} & 0\\ -I_{xz} & 0 & I_{zz}\end{bmatrix}.
+\end{equation}
+Bu matrisle dönme denklemleri, toplam moment $\mathbf M=[M_x\ M_y\ M_z]^T$ için
+\begin{equation}
+\begin{aligned}
+I_{xx}\dot p-I_{xz}\dot r&=M_x+(I_{yy}-I_{zz})qr+I_{xz}pq,\\
+I_{yy}\dot q&=M_y+(I_{zz}-I_{xx})rp+I_{xz}(r^2-p^2),\\
+I_{zz}\dot r-I_{xz}\dot p&=M_z+(I_{xx}-I_{yy})pq-I_{xz}qr
+\end{aligned}
+\label{eq:rot}
+\end{equation}
+olur. Yuvarlanma ve sapma denklemleri $I_{xz}$ üzerinden birbirine bağlıdır; modelde $\dot{\boldsymbol\omega}=\mathbf I^{-1}[\mathbf M-\boldsymbol\omega\times\mathbf I\boldsymbol\omega]$ doğrudan hesaplanır. Bu bağlaşım Bölüm~V'te kararlılık parametreleri çıkarılırken ayrıştırılır. Euler açısı kinematiği
+\begin{equation}
+\dot\phi=p+(q\sin\phi+r\cos\phi)\tan\theta,\qquad
+\dot\theta=q\cos\phi-r\sin\phi,\qquad
+\dot\psi=\frac{q\sin\phi+r\cos\phi}{\cos\theta}
+\label{eq:kin}
+\end{equation}
+ile verilir ($\theta=\pm90^\circ$'de tekildir; incelenen koşullarda $|\theta|<12^\circ$'dir). Konum, gövde hızının $\phi$, $\theta$, $\psi$ dönüşleriyle yer eksenine çevrilip integre edilmesiyle bulunur:
+\begin{equation}
+[\dot x_N\ \dot y_E\ \dot z_E]^T=\mathbf R_z(\psi)^T\mathbf R_y(\theta)^T\mathbf R_x(\phi)^T\,\mathbf v .
+\end{equation}
+Hareket Denklemleri alt sistemi bu denklemleri ayrı alanlarda çözer (Şekil~\ref{fig:mdl_eom}): kuvvet ve moment toplamı, öteleme dinamiği, dönme dinamiği, dönme kinematiği ve öteleme kinematiği. Dönme dinamiğinde önce $\mathbf H=\mathbf I\boldsymbol\omega$, sonra $\boldsymbol\omega\times\mathbf H$ çarpımları kurulur ve $\mathbf I^{-1}$ ile çarpılarak $\dot{\boldsymbol\omega}$ bulunur.
 
-\emph{LEF tarifesi.} $\delta_{lef}=1,38\,\dfrac{2s+7,25}{s+7,25}\,\alpha-9,05\,\bar q/p_s+1,45$ (derece), $0$--$25^\circ$ aralığıyla sınırlıdır~\cite{slj}.
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=\textwidth]{figures/MDL_EOM.png}
+\caption{Hareket Denklemleri alt sisteminden öteleme dinamiği, dönme dinamiği ve dönme kinematiği alanları; her alanın denklemi üstünde yazılıdır.}
+\label{fig:mdl_eom}
+\end{figure}
 
-\subsection{Doğrulama ve düzeltmeler}
-Aerodinamik ve İtki blokları test modellerinde ayrı ayrı çalıştırılmış; Ödev~1'deki on katsayı durumunun ve beş itki durumunun hepsinde bağımsız referans hesaplarıyla uyuşmuştur. Referans ağırlık merkezinde uçak küçük hücum açılarında yunuslamada statik olarak kararsızdır; statik marj yaklaşık $-\%4\,\bar c$'dir. Bu, TP-1538'de incelenen gevşetilmiş statik kararlılık konfigürasyonudur~\cite{tp1538}.
+Trim ve doğrusallaştırma, gövde hızları yerine hava verisi büyüklüklerini kullanır:
+\begin{equation}
+V_T=\sqrt{u^2+v^2+w^2},\qquad \alpha=\operatorname{atan2}(w,u),\qquad \beta=\arcsin(v/V_T),
+\end{equation}
+\begin{equation}
+\dot V_T=\frac{u\dot u+v\dot v+w\dot w}{V_T},\qquad
+\dot\alpha=\frac{u\dot w-w\dot u}{u^2+w^2},\qquad
+\dot\beta=\frac{V_T\dot v-v\dot V_T}{V_T^2\cos\beta}.
+\label{eq:wind}
+\end{equation}
 
-\emph{Düzeltmeler.} Ders verilerinde $C_{l_p}(\alpha=55^\circ)=-1200$ verilmiştir; veriler yüklenirken TP-1538'deki $-0,12$ değeriyle değiştirilir. Bu düzeltme Ödev~1'de yapılmıştır ve buradaki koşulları etkilemez ($\alpha<11^\circ$). Ödev~1 geri bildiriminden sonra model beş noktada düzeltilmiştir:
+\subsection{Atmosfer ve yerçekimi}
+Atmosfer, Ref.~\cite{slj}'in Ek A.6'daki standart atmosferinin SI'ya çevrilmiş hâlidir. Sıcaklık oranı $T^*=1-kh$ ($k=2,30643\times10^{-5}$~m$^{-1}$) olmak üzere
+\begin{equation}
+T=\begin{cases}T_0T^*, & h\le h_{tp}\\ T_{tp}, & h>h_{tp}\end{cases},\qquad
+\rho=\rho_0(T^*)^{4,14},\qquad
+M=\frac{V_T}{\sqrt{\gamma RT}},\qquad
+\bar q=\tfrac12\rho V_T^2,\qquad p_s=R\rho T
+\end{equation}
+yazılır. Sabitler $\rho_0=1,22506$~kg/m$^3$, $T_0=288,333$~K, $T_{tp}=216,667$~K, $h_{tp}=10\,668$~m, $\gamma R=401,813$ ve $R=286,792$~J/(kg\,K)'dir. Yerçekimi ivmesi irtifaya bağlıdır, $g=g_0[R_e/(R_e+h)]^2$, $g_0=9,80665$~m/s$^2$, $R_e=6,371\times10^6$~m; 10\,000~ft'te $g$, $g_0$'dan \%0,1 küçüktür. 10\,000~ft ve 0,6 Mach'ta bu bağıntılar $V_T=196,92$~m/s ve $\bar q=17\,564$~Pa verir. Atmosfer alt sisteminde her büyüklük kendi alanında hesaplanır (Şekil~\ref{fig:mdl_atm}); $V_T$ sıfıra bölmeyi önlemek için en az 0,1~m/s'de tutulur ve $\arcsin$'in argümanı $\pm1$'e kırpılır.
+
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/MDL_Atmosphere.png}
+\caption{Atmosfer alt sistemi: toplam hız, hücum ve yan kayma açıları, yerçekimi, sıcaklık, yoğunluk, Mach sayısı, dinamik ve statik basınç.}
+\label{fig:mdl_atm}
+\end{figure}
+
+\subsection{Aerodinamik}
+Aerodinamik kuvvet ve momentler gövde ekseninde
+\begin{equation}
+\mathbf F_A=\bar qS\,[C_X\ \ C_Y\ \ C_Z]^T,\qquad
+\mathbf M_A=\bar qS\,[b\,C_l\ \ \bar c\,C_m\ \ b\,C_n]^T
+\end{equation}
+olarak hesaplanır. Altı katsayı TP-1538'in katsayı yapısıyla kurulur~\cite{tp1538}. Açılar derece cinsindendir; $\Lambda=1-\delta_{lef}/25^\circ$ LEF artımlarının ağırlığıdır ve $C_{(\cdot)}(\alpha,\beta,0)$, $\delta_h=0$ dilimini gösterir. Boyuna kuvvetler ($i=X,Z$):
+\begin{equation}
+C_i=C_i(\alpha,\beta,\delta_h)+\Delta C_{i,lef}\Lambda+\frac{\bar cq}{2V_T}\left[C_{i_q}(\alpha)+\Delta C_{i_q,lef}(\alpha)\Lambda\right]+\Delta C_{i,sb}(\alpha)\frac{\delta_{sb}}{60},
+\qquad \Delta C_{i,lef}=C_{i,lef}(\alpha,\beta)-C_i(\alpha,\beta,0).
+\end{equation}
+Yan kuvvet:
+\begin{equation}
+C_Y=C_Y(\alpha,\beta)+\Delta C_{Y,lef}\Lambda+\left[\Delta C_{Y,\delta_a}+\Delta C_{Y,\delta_a,lef}\Lambda\right]\frac{\delta_a}{20}+\Delta C_{Y,\delta_r}\frac{\delta_r}{30}
++\frac{b}{2V_T}\left\{r\left[C_{Y_r}+\Delta C_{Y_r,lef}\Lambda\right]+p\left[C_{Y_p}+\Delta C_{Y_p,lef}\Lambda\right]\right\}.
+\end{equation}
+Burada $\Delta C_{\delta_a}=C_{\delta_a=20^\circ}(\alpha,\beta)-C(\alpha,\beta,0)$ ve $\Delta C_{\delta_r}=C_{\delta_r=30^\circ}(\alpha,\beta)-C(\alpha,\beta,0)$ kumanda artımlarıdır; yani tablolar $20^\circ$ kanatçık ve $30^\circ$ dümen için verilmiştir ve ara açılarda doğrusal ölçeklenir. Yuvarlanma ve sapma momentleri ($i=l,n$) $C_Y$ ile aynı yapıdadır; temel tablo $\delta_h$'ye de bağlıdır ve iki terim eklenir:
+\begin{equation}
+C_i=C_i(\alpha,\beta,\delta_h)+\Delta C_{i,lef}\Lambda+\ldots+\Delta C_{i_\beta}(\alpha)\,\beta,\qquad
+C_n\leftarrow C_n-C_Y(x_{cg,ref}-x_{cg})\frac{\bar c}{b}.
+\end{equation}
+Yunuslama momenti, Ödev~1'de verilen formüldür:
+\begin{multline}
+C_m=C_m(\alpha,\beta,\delta_h)\,\eta_{\delta_h}(\delta_h)+\frac{\bar cq}{2V_T}\left[C_{m_q}(\alpha)+\Delta C_{m_q,lef}(\alpha)\Lambda\right]+C_Z(x_{cg,ref}-x_{cg})\\
++\Delta C_{m,lef}\Lambda+\Delta C_{m,sb}(\alpha)\frac{\delta_{sb}}{60}+\Delta C_m(\alpha)+\Delta C_{m,ds}(\alpha,\delta_h).
+\label{eq:cm}
+\end{multline}
+Veriler $x_{cg,ref}=0,35\bar c$'ye göre verilmiştir. $C_Z(x_{cg,ref}-x_{cg})$ terimi, ağırlık merkezi referans noktasının önündeyken normal kuvvetin oluşturduğu kararlılaştırıcı momenttir; i ve iii koşulları arasındaki farkın kaynağı bu terimdir.
+
+Aerodinamik alt sisteminde önce $\bar c/(2V_T)$ ve $b/(2V_T)$ hesaplanır, sonra her katsayı kendi alt sisteminde kurulur ve en sonda kuvvet ve momentlere çevrilir. Şekil~\ref{fig:mdl_cm} örnek olarak $C_m$ alt sistemini gösterir: Denk.~(\ref{eq:cm})'deki her terim ayrı bir arama tablosundan okunur, LEF artımı $\Lambda$ ile, sönüm terimi $\bar cq/(2V_T)$ ile çarpılır ve terimler en sağda toplanır.
+
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/MDL_Aero_Cm.png}
+\caption{Aerodinamik alt sistemi içindeki $C_m$ alt sistemi; üstte modelde yazılı yunuslama momenti denklemi.}
+\label{fig:mdl_cm}
+\end{figure}
+
+Yapı 68 arama tablosuyla kurulur: $C_X$ için 5, $C_Y$ için 9, $C_Z$ için 5, $C_l$ için 10, $C_m$ için 8 ve $C_n$ için 10 tablo. Ana tablolar $\alpha=-20\ldots90^\circ$ (20 nokta) ve $\beta=-30\ldots30^\circ$ (19 nokta) aralığını kapsar; $\delta_h$ boyutu $C_X$, $C_Z$ ve $C_m$'de $-25\ldots25^\circ$ arasında 5, $C_l$ ve $C_n$'de 3 noktadır. LEF tabloları yalnızca $\alpha=-20\ldots45^\circ$ aralığında tanımlıdır. Bütün tablolar doğrusal aradeğerlenir; aralık dışında sınır değeri tutulur. Ders verilerindeki $C_{l_p}(\alpha=55^\circ)=-1200$ değeri bir yazım hatasıdır; TP-1538'deki $-0,12$ değeri veriler yüklenirken bellekte düzeltilir, veri dosyası değiştirilmez.
+
+\subsection{İtki}
+Motor modeli TP-1538'deki dört adımı izler~\cite{tp1538}.
+\begin{enumerate}
+\item \emph{Gaz kolu dişlisi.} Gaz kolu $\delta_T$, güç komutuna doğrusal parçalarla çevrilir: \%0--77 aralığı $P_c=0$--50 (askerî güce kadar), \%77--100 aralığı $P_c=50$--100 (art yakıcı).
+\item \emph{Güç gecikmesi.} Güç seviyesi $\dot P_3=(P_2-P_3)/\tau$ ile değişir. $P_c$ ve $P_3$ 50'nin aynı tarafındaysa $P_2=P_c$'dir; art yakıcıya geçişte $P_2=60$, art yakıcıdan çıkışta $P_2=40$ alınır. $P_3\ge50$ iken $1/\tau=5$~s$^{-1}$'dir; $P_3<50$ iken $1/\tau=R_\tau(P_2-P_3)$ ve
+\begin{equation}
+R_\tau(\Delta P)=\begin{cases}1,0, & \Delta P\le25\\ 1,9-0,036\,\Delta P, & 25<\Delta P<50\\ 0,1, & \Delta P\ge50\end{cases}
+\end{equation}
+olur. Yani motor rölantiden yavaş toparlanır, art yakıcı bölgesinde hızlı tepki verir.
+\item \emph{İtki aradeğerlemesi.} Rölanti, askerî ve azami güç itkileri Mach sayısına (0--1) ve irtifaya (0--50\,000~ft) bağlı üç tablodur:
+\begin{equation}
+T=\begin{cases}T_{idle}+(T_{mil}-T_{idle})\,P_3/50, & P_3\le50\\ T_{mil}+(T_{max}-T_{mil})(P_3-50)/50, & P_3>50.\end{cases}
+\end{equation}
+Tablolar ft ve lbf cinsinden olduğundan irtifa girişte ft'ye, itki çıkışta N'ye çevrilir.
+\item \emph{Kuvvet ve jiroskopik moment.} İtki gövde $x$ ekseni boyunca ve ağırlık merkezinden etki eder, $\mathbf F_T=[T\ 0\ 0]^T$; dolayısıyla itkinin moment kolu yoktur. Motorun dönen parçalarının açısal momentumu $\mathbf h_E=[h_E\ 0\ 0]^T$ jiroskopik bir moment üretir: $\mathbf M_T=-\boldsymbol\omega\times\mathbf h_E=[0\ \ {-r}h_E\ \ qh_E]^T$.
+\end{enumerate}
+Şekil~\ref{fig:mdl_prop}'te üç itki tablosu, gaz kolu dişlisi ve güç gecikmesini içeren Engine Dynamics alt sistemi, $P_3=50$'de anahtarlanan aradeğerleme ve sağda jiroskopik moment alanı görülmektedir.
+
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=0.55\textwidth]{figures/MDL_Propulsion.png}
+\caption{İtki alt sistemi.}
+\label{fig:mdl_prop}
+\end{figure}
+
+\subsection{Kütle özellikleri, eyleyiciler ve LEF tarifesi}
+\emph{Kütle ve eylemsizlik.} Değerler TP-1538 Tablo~I'in~\cite{tp1538} SI karşılıklarıdır: $m=9295,4$~kg, $S=27,871$~m$^2$, $b=9,144$~m, $\bar c=3,4503$~m, $I_{xx}=12\,875$, $I_{yy}=75\,674$, $I_{zz}=85\,552$, $I_{xz}=1331,4$~kg\,m$^2$ ve $h_E=216,93$~kg\,m$^2$/s. Yerçekimi kuvveti gövde eksenine
+\begin{equation}
+\mathbf F_G=mg(h)\,[-\sin\theta\ \ \sin\phi\cos\theta\ \ \cos\phi\cos\theta]^T
+\end{equation}
+olarak geçirilir; $\psi$'ye bağlı değildir.
+
+\emph{Eyleyiciler.} Stabilatör, kanatçık, dümen ve LEF birinci mertebe sistemlerdir:
+\begin{equation}
+\dot\delta=\operatorname{sat}_{\dot\delta}\!\left[\frac{\operatorname{sat}_\delta(\delta_c)-\delta}{\tau}\right].
+\end{equation}
+Komut önce konum sınırına kırpılır, hata $\tau$'ya bölünerek yüzey hızı bulunur ve bu hız da hız sınırına kırpılıp integre edilir (Şekil~\ref{fig:mdl_act}). Sınırlar ve zaman sabitleri~\cite{tp1538} Tablo~\ref{tab:act}'tedir. Hava freninde dinamik yoktur.
+
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/MDL_Actuator_dh.png}
+\caption{Stabilatör eyleyicisi: konum sınırı, $1/\tau$ kazancı, hız sınırı ve integratör.}
+\label{fig:mdl_act}
+\end{figure}
+
+\begin{table}[hbt!]
+\caption{\label{tab:act} Eyleyici sınırları ve zaman sabitleri}
+\centering
+\begin{tabular}{lccc}
+\toprule
+Yüzey & Konum sınırı & Hız sınırı & $\tau$ [s] \\
+\midrule
+Stabilatör $\delta_h$ & $\pm25^\circ$ & $60^\circ$/s & 0,0495 \\
+Kanatçık $\delta_a$ & $\pm21,5^\circ$ & $80^\circ$/s & 0,0495 \\
+Dümen $\delta_r$ & $\pm30^\circ$ & $120^\circ$/s & 0,0495 \\
+Hücum kenarı flapı $\delta_{lef}$ & $0$--$25^\circ$ & $25^\circ$/s & 0,136 \\
+Hava freni $\delta_{sb}$ & $0$--$60^\circ$ & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{LEF tarifesi.} Hücum kenarı flapı pilot tarafından değil, hücum açısı ve dinamik basınçla otomatik olarak komut edilir~\cite{slj}:
+\begin{equation}
+\delta_{lef,c}=1,38\,\frac{2s+7,25}{s+7,25}\,\alpha-9,05\,\frac{\bar q}{p_s}+1,45\qquad(\text{derece}).
+\label{eq:lef}
+\end{equation}
+$(2s+7,25)/(s+7,25)$ bir öncül filtredir: kararlı hâlde kazancı 1, ani $\alpha$ değişimlerinde 2'dir. $\bar q/p_s=(\gamma/2)M^2$ olduğundan hız arttıkça flap toplanır. Komut LEF eyleyicisinden geçerek $0$--$25^\circ$ aralığında kalır. Flap $\alpha$ ile açıldığından tarife, aerodinamik bir $\alpha$ geri beslemesi gibi davranır; bu etki Bölüm~III ve VI'da önemli hâle gelir.
+
+\subsection{Simulink uygulaması}
+Model, Aerospace Blockset kullanılmadan temel Simulink bloklarıyla (integratör, çarpım, doyum, $n$-boyutlu arama tablosu, transfer fonksiyonu) kurulmuştur. Kök seviyede (Şekil~\ref{fig:model}) yukarıdaki altı bölüme karşılık gelen altı alt sistem ve LEF tarifesi bulunur; sinyaller Goto/From etiketleriyle (\texttt{V\_body}, \texttt{omega\_body}, \texttt{alpha}, \texttt{q\_dyn}, \texttt{F\_aero} vb.) taşınır. Her alt sistemin içinde ilgili denklem, blokların yanında yazılıdır (Şekil~\ref{fig:mdl_eom}--\ref{fig:mdl_act}).
+
+Bir zaman adımında sinyal akışı şöyledir. Hareket Denklemleri alt sistemi $\mathbf v$, $\boldsymbol\omega$, Euler açılarını, konumu ve irtifayı verir. Atmosfer bunlardan $V_T$, $\alpha$, $\beta$, $\bar q$, $M$, $p_s$ ve $g$'yi hesaplar. LEF tarifesi $\alpha$ ve $\bar q/p_s$'den flap komutunu üretir; bu komut, pilotun stabilatör, kanatçık ve dümen komutlarıyla birlikte Eyleyiciler'e girer. Gerçek yüzey açıları Aerodinamik'e gider. Aerodinamik, İtki ile Kütle ve Eylemsizlik kendi kuvvet ve momentlerini verir; bunlar Hareket Denklemleri'nde toplanır ve yeni durum türevleri bulunur. Tablo~\ref{tab:io} her alt sistemin girdi ve çıktılarını verir.
+
+\begin{table}[hbt!]
+\caption{\label{tab:io} Alt sistemlerin girdi ve çıktıları}
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+Alt sistem & Girdiler & Çıktılar \\
+\midrule
+Atmosfer & $u$, $v$, $w$, $h$ & $V_T$, $\alpha$, $\beta$, $\bar q$, $M$, $p_s$, $g$ \\
+LEF tarifesi & $\alpha$, $\bar q$, $p_s$ & $\delta_{lef,c}$ \\
+Eyleyiciler & $\delta_{h,c}$, $\delta_{a,c}$, $\delta_{r,c}$, $\delta_{lef,c}$, $\delta_{sb}$ & $\delta_h$, $\delta_a$, $\delta_r$, $\delta_{lef}$, $\delta_{sb}$ \\
+Aerodinamik & $\alpha$, $\beta$, $V_T$, $\bar q$, $p$, $q$, $r$, yüzey açıları, $x_{cg}$ & $\mathbf F_A$, $\mathbf M_A$ \\
+İtki & $\delta_T$, $M$, $h$, $p$, $q$, $r$ & $\mathbf F_T$, $\mathbf M_T$ \\
+Kütle ve Eylemsizlik & $\phi$, $\theta$, $g$ & $\mathbf F_G$, $m$, $\mathbf I$, $x_{cg}$ \\
+Hareket Denklemleri & $\mathbf F_A$, $\mathbf F_T$, $\mathbf F_G$, $\mathbf M_A$, $\mathbf M_T$, $m$, $\mathbf I$ & $\mathbf v$, $\boldsymbol\omega$, $\phi$, $\theta$, $\psi$, $x_N$, $y_E$, $z_E$, $h$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Veriler, sabitler ve başlangıç koşulları \texttt{init\_F16.m} ile çalışma alanına yüklenir. Bütün analizler bu tek modeli kullanır; denklemlerin ayrı bir kopyası yoktur. Trim ve doğrusallaştırma, durum türevlerini derlenmiş modelden doğrudan okur (\texttt{f16\_eval.m}, \texttt{F16\_6DOF(0,x,u,'derivs')}); benzetimler aynı modeli zaman içinde çözer (\texttt{sim\_F16.m}).
+
+\subsection{Doğrulama ve aerodinamik özellikler (Ödev~1)}
+Aerodinamik ve İtki alt sistemleri, modeldeki blokların kopyaları ayrı test modellerinde tek başına çalıştırılarak doğrulanmıştır. Aerodinamik için on durum 0,4 Mach ve 10\,000~ft'te ($V_T=131,28$~m/s, $\bar q=7806,3$~Pa) hesaplanmıştır; her durum yapının farklı bir parçasını sınar: bütün girişler sıfırken temel tablolar ve tam ağırlıklı LEF artımları (1), $60^\circ$ hava freni (2), $\alpha=20^\circ$ (3), $\beta=12,5^\circ$ ile yanal tablolar ve $\Delta C_{i_\beta}$ terimleri (4), $\delta_h=-15^\circ$ ile $\eta_{\delta_h}$ (5; $C_m=+0,128$), $\delta_{lef}=25^\circ$ ile $\Lambda=0$ (6), kanatçık (7) ve dümen (8) artımları, trime yakın birleşik bir durum (9) ve buna açısal hızların eklenmesiyle sönüm terimleri (10). İtki için beş durum vardır: düşük gaz (\%10, 0,25 Mach, 5000~ft; 7892~N), tam askerî güç (\%77, 0,65 Mach, 25\,000~ft; 26\,867~N), art yakıcı (\%95, 0,9 Mach, 45\,000~ft; 24\,060~N) ve Tablo~1 koşulunda iki gaz konumu (9049 ve 10\,718~N). Motor, kararlı hâl itkisi istendiğinden o gaz konumunun kararlı gücünde başlatılır. On beş durumun hepsinde sonuçlar, aynı veriden bağımsız olarak hesaplanan referans değerlerle örtüşür: en büyük fark katsayılarda $3,3\times10^{-12}$, kuvvet ve momentlerde $3,3\times10^{-6}$~N (N\,m), itkide $4,8\times10^{-7}$~N'dir.
+
+Şekil~\ref{fig:clcd}, Tablo~1 koşulunda $\alpha=-20\ldots90^\circ$ taramasıyla elde edilen kaldırma ve sürükleme katsayılarını gösterir. Temel durumda $C_L$ en büyük değerine ($\approx1,72$) $\alpha\approx35^\circ$'de ulaşır, ardından tutunma kaybıyla düşer; $C_D$ en küçük değerini ($\approx0,02$) $\alpha\approx0$'da alır. $25^\circ$ LEF, kanadın hücum kenarında akış ayrılmasını geciktirerek en büyük $C_L$'yi 1,89'a çıkarır; $60^\circ$ hava freni sürüklemeyi artırır; $15^\circ$ yan kayma ve $-25^\circ$ stabilatör en büyük $C_L$'yi düşürür.
+
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/P2a_CL_CD.png}
+\caption{Ödev~1: kaldırma ve sürükleme katsayıları ($x_{cg}=0,35\bar c$, açısal hızlar sıfır).}
+\label{fig:clcd}
+\end{figure}
+
+Şekil~\ref{fig:cm}, $x_{cg}=0,35\bar c$'de dokuz yan kayma açısı için yunuslama momentini gösterir. $\beta=0$'da yaklaşık $-15^\circ<\alpha<15^\circ$ aralığında $\partial C_m/\partial\alpha>0$'dır, yani uçak bu ağırlık merkezinde küçük hücum açılarında yunuslamada statik olarak kararsızdır; statik marj yaklaşık $-\%4\,\bar c$'dir. Bu, TP-1538'de incelenen gevşetilmiş boyuna statik kararlılık konfigürasyonudur~\cite{tp1538}; F-16'da kararlılığı uçuş kontrol sistemi sağlar. Ara Projenin iii koşulu tam olarak bu ağırlık merkezindedir ve Bölüm~IV--VI'daki kararsız davranışın kaynağı budur. $\beta=-6^\circ$ eğrisinde $\alpha=20$--$30^\circ$ arasındaki çukur, verideki tek bir noktadan ($C_{m,lef}$, $\alpha=25^\circ$) gelir; bu değer TP-1538'de de aynıdır ve verildiği gibi bırakılmıştır.
+
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=0.55\textwidth]{figures/P2b_Cm.png}
+\caption{Ödev~1: yunuslama momenti katsayısı ($x_{cg}=0,35\bar c$, $\delta_h=\delta_{lef}=\delta_{sb}=0$).}
+\label{fig:cm}
+\end{figure}
+
+\subsection{Ödev~1'deki düzeltmeler}
+Ödev~1 geri bildiriminden sonra model beş noktada düzeltilmiştir:
 \begin{enumerate}
 \item her eyleyici ayrı bir alt sistemdir (önceden tek blokta idiler);
 \item yerçekimi ivmesi irtifaya bağlıdır ve Atmosfer alt sisteminin çıkışıdır (önceden sabit $g_0$ idi);
@@ -137,19 +347,40 @@ Aerodinamik ve İtki blokları test modellerinde ayrı ayrı çalıştırılmı�
 \item motorun jiroskopik momenti İtki alt sisteminde hesaplanır (önceden hareket denklemlerindeydi);
 \item kuvvet ve momentler Hareket Denklemleri alt sisteminde toplanır (önceden kök seviyede toplanıyordu).
 \end{enumerate}
-Geri bildirimin diğer maddeleri (LEF tarifesi ve eyleyicisi, yerçekimi kuvveti, motor dinamiği) modelde zaten vardı. $g$ sabit tutulduğunda düzeltilmiş model, keyfî durumlarda Ödev~1 modelinin durum türevlerini $6\times10^{-11}$ farkla verir; yani 1. ve 3--5. maddeler hiçbir sonucu değiştirmez. Tek fiziksel değişiklik $g(h)$'dir: 10\,000~ft'te $g$, $g_0$'dan \%0,1 küçüktür.
+Geri bildirimin diğer maddeleri (LEF tarifesi ve eyleyicisi, yerçekimi kuvveti, motor dinamiği) modelde zaten vardı. $g$ sabit tutulduğunda düzeltilmiş model, keyfî durumlarda eski modelin durum türevlerini $6\times10^{-11}$ farkla verir; yani 1. ve 3--5. maddeler hiçbir sonucu değiştirmez. Tek fiziksel değişiklik $g(h)$'dir. Ödev~1 doğrulama sonuçları aynı kalmıştır; Ödev~2 sonuçları düzeltilmiş modelle yeniden hesaplanmıştır.
 
 \section{Trim ve Doğrusallaştırma}
 
-\subsection{Trim}
-Trim problemi \texttt{fmincon} (SQP) ile çözülür. Bilinmeyenler $\alpha$, $\beta$, $\phi$, $\theta$, dönüş hızı $\dot\psi$ ve dört kumandadır; $V_T$ ve $h$ verilen Mach sayısı ile irtifadan hesaplanır. Kararlı dönüşte gövde hızları $p=-\dot\psi\sin\theta$, $q=\dot\psi\sin\phi\cos\theta$ ve $r=\dot\psi\cos\phi\cos\theta$ olup $\dot\phi=\dot\theta=0$ sağlanır. Maliyet fonksiyonu~\cite{slj}
+\subsection{Trim problemi}
+Ders~4'teki~\cite{lec4} tanımla trim, durum türevlerinin sıfır olduğu bir $(\mathbf x_{eq},\mathbf u_{eq})$ çiftidir: $\mathbf g(\mathbf 0,\mathbf x_{eq},\mathbf u_{eq})=\mathbf 0$. Bu çift, belirtilen parametreler (Mach, irtifa, $\gamma$, $x_{cg}$ ve gerektiğinde $\beta$, $\phi$ veya $n_z$) verildiğinde bilinmeyen parametre vektörü
 \begin{equation}
-J=\dot V_T^2+100(\dot\alpha^2+\dot\beta^2)+10(\dot p^2+\dot q^2+\dot r^2)
+\mathbf z=[\alpha\ \ \beta\ \ \phi\ \ \theta\ \ \dot\psi\ \ \delta_T\ \ \delta_h\ \ \delta_a\ \ \delta_r]^T
 \end{equation}
-uçuş yolu açısı kısıtı ve gerektiğinde yük faktörü kısıtı altında en küçüklenir. Ders~4'teki gibi Durum 5'in yük faktörü $n_z=1/\cos\mu$'dür; rüzgâr ekseni yatış açısı $\tan\mu=\cos\theta\sin\phi/(\sin\alpha\sin\theta+\cos\alpha\cos\theta\cos\phi)$ ile verilir ve kısıt $f_{NLF}=n_z-1/\cos\mu=0$'dır. LEF her değerlendirmede kararlı hâl tarifesinden hesaplanır. Tablo~\ref{tab:trim} altı trim noktasını vermektedir. Bütün durumlarda $J<10^{-10}$'dur ve modelin trimdeki türevleri (eyleyici, motor ve LEF filtresi durumları dahil) $2\times10^{-4}$~m/s$^2$ ve $10^{-6}$~rad/s$^2$ düzeyinde sıfırdır. Bu raporun i, ii ve iii koşulları, sırasıyla Durum 1, 4 ve 6'dır.
+üzerinden aranır. $V_T$ Mach sayısından ve irtifadan, gövde hızları Denk.~(\ref{eq:wind})'in tersinden bulunur. Belirtilen bir $\beta$ veya $\phi$, alt ve üst sınırı eşitlenerek sabitlenir; düz uçuşta $\dot\psi=0$'dır. Kararlı dönüşte $\dot\phi=\dot\theta=0$ (dönme kinematiği kısıtı $f_{RK}$) Denk.~(\ref{eq:kin})'den
+\begin{equation}
+p=-\dot\psi\sin\theta,\qquad q=\dot\psi\cos\theta\sin\phi,\qquad r=\dot\psi\cos\theta\cos\phi
+\end{equation}
+verir. Eyleyici durumları komut edilen açılara, motor gücü $P_3$ gaz kolunun kararlı güç seviyesine, LEF filtresi kararlı hâline yerleştirilir ve $\delta_{lef}$ Denk.~(\ref{eq:lef})'in kararlı hâl değerinden hesaplanır; böylece bu 6 yardımcı durumun türevleri kendiliğinden sıfırdır.
+
+Maliyet fonksiyonu, öteleme ($f_{TD}$) ve dönme ($f_{RD}$) dinamiği kısıtlarının ağırlıklı kareleridir, $J=\dot{\mathbf x}^TW\dot{\mathbf x}$~\cite{lec4,slj}:
+\begin{equation}
+J=\dot V_T^2+100(\dot\alpha^2+\dot\beta^2)+10(\dot p^2+\dot q^2+\dot r^2).
+\end{equation}
+$[\dot u\ \dot v\ \dot w]$ yerine $[\dot V_T\ \dot\alpha\ \dot\beta]$ kullanmak eşdeğerdir; ağırlıklar açı ve hız birimlerini dengeler. İki eşitlik kısıtı vardır. Uçuş yolu açısı kısıtı ($f_{TK3}$)
+\begin{equation}
+\sin\gamma-(a\sin\theta-b\cos\theta)=0,\qquad a=\cos\alpha\cos\beta,\quad b=\sin\phi\sin\beta+\cos\phi\sin\alpha\cos\beta
+\end{equation}
+her durumda uygulanır. Yük faktörü verildiğinde ise
+\begin{equation}
+f_{NLF}=n_z-\frac{1}{\cos\mu}=0,\qquad \tan\mu=\frac{\cos\theta\sin\phi}{\sin\alpha\sin\theta+\cos\alpha\cos\theta\cos\phi}
+\end{equation}
+kısıtı eklenir; $\mu$ rüzgâr ekseni yatış açısıdır. Problem \texttt{fmincon}'un SQP algoritmasıyla, kumandaların konum sınırları ve $-10^\circ\le\alpha\le45^\circ$ sınırları altında çözülür (\texttt{trim\_F16.m}).
+
+\subsection{Trim sonuçları}
+Tablo~\ref{tab:trim}, Ödev~2'nin altı trim noktasını vermektedir: 0,6 Mach'ta düz uçuş (1), alçalma (2), tırmanma (3), $60^\circ$ yatışlı dönüş (4), $n_z=4$ dönüşü (5) ve geride ağırlık merkeziyle düz uçuş (6). Bütün durumlarda $J<10^{-10}$'dur ve modelin trimdeki 18 durum türevinin hepsi $2\times10^{-4}$~m/s$^2$ ve $10^{-6}$~rad/s$^2$ düzeyinde sıfırdır. Ara Projenin i, ii ve iii koşulları, sırasıyla Durum 1, 4 ve 6'dır. Dönüşte (4) aynı hızda daha büyük kaldırma gerektiğinden $\alpha$ ve dolayısıyla $\delta_{lef}$ büyür; geride ağırlık merkezinde (6) kuyruk daha az aşağı kuvvet ürettiğinden $\delta_h$ ve $\alpha$ küçülür.
 
 \begin{table}[hbt!]
-\caption{\label{tab:trim} Düzeltilmiş modelle yeniden hesaplanan Ödev~2 trim sonuçları (açılar derece, $\dot\psi$ rad/s)}
+\caption{\label{tab:trim} Düzeltilmiş modelle hesaplanan Ödev~2 trim sonuçları (açılar derece, $\dot\psi$ rad/s)}
 \centering
 \small
 \setlength\tabcolsep{3.5pt}
@@ -163,28 +394,31 @@ Durum & $M$; $h$ [ft]; koşul & $x_{cg}$ & $V_T$ [m/s] & $\alpha$ & $\theta$ & $
 \end{table}
 
 \subsection{Doğrusallaştırma}
-Model her trim noktası etrafında merkezi farklarla, her seferinde bir durum veya giriş $10^{-3}$ kadar (m/s, rad, rad/s ve \% cinsinden, Ders~5'teki gibi) bozularak doğrusallaştırılır; türevler Simulink modelinden model API'si ile okunur. Bu raporda kullanılan rüzgâr ekseni modeli
+Doğrusal model, Ders~5'teki~\cite{lec5} gibi küçük bozuntular için $\Delta\dot{\mathbf x}=A\Delta\mathbf x+B\Delta\mathbf u$'dur. Rüzgâr ekseni modelinde
 \begin{equation}
 \Delta\mathbf x=[\Delta V_T\ \Delta\alpha\ \Delta q\ \Delta\theta\ \Delta\beta\ \Delta p\ \Delta r\ \Delta\phi]^T,\qquad
 \Delta\mathbf u=[\Delta\delta_T\ \Delta\delta_h\ \Delta\delta_a\ \Delta\delta_r]^T
 \end{equation}
-şeklindedir ve $A=\begin{bmatrix}A_{11}&A_{21}\\A_{12}&A_{22}\end{bmatrix}$; boyuna blok $A_{11}$, yanal-yönsel blok $A_{22}$ ve bağlaşım bloklarına ayrılır. Eyleyici ve motor durumları 8 durumlu modelde yer almaz. LEF tarifesini izler: her bozulmuş durumda $\delta_{lef}$, bozulmuş $\alpha$ ve $\bar q/p_s\propto V_T^2$ değerlerinden yeniden hesaplanır ($(2s+7,25)/(s+7,25)$ filtresinin kararlı hâl kazancı 1'dir). Yalnızca Problem 2 (Bölüm~V), $\delta_{lef}$'in trim değerinde tutulduğu ikinci bir model kullanır. Tarife üç elemanı değiştirir: $\partial\delta_{lef}/\partial\alpha=1,38$ olduğundan flap $\alpha$ büyüdükçe burun aşağı moment ve sürükleme ekler; $a_{32}$ i, ii ve iii'te sırasıyla 1,93, 2,16 ve 2,42~s$^{-2}$ azalır, $a_{12}$ i ve iii'te 3,0 ve 3,3~m\,s$^{-2}$ azalır (ii'de neredeyse değişmez), $a_{22}$ ise 0,06~s$^{-1}$ artar.
+alınır; gövde ekseni modelinde $V_T$, $\alpha$, $\beta$ yerine $u$, $w$, $v$ kullanılır. Matrisler, \texttt{f16\_eval} ile modelden okunan türevlerin merkezi farklarıdır:
+\begin{equation}
+a_{ij}=\frac{f_i(\mathbf x_1+h\mathbf e_j,\mathbf u_1)-f_i(\mathbf x_1-h\mathbf e_j,\mathbf u_1)}{2h},\qquad h=10^{-3}
+\end{equation}
+(m/s, rad, rad/s ve \% cinsinden, Ders~5'teki gibi); $B$ aynı biçimde bulunur. $A=\begin{bmatrix}A_{11}&A_{21}\\A_{12}&A_{22}\end{bmatrix}$ şeklinde boyuna blok $A_{11}$, yanal-yönsel blok $A_{22}$ ve bağlaşım bloklarına ayrılır. İrtifa, yön açısı ve konum diğer denklemlere girmediğinden (yoğunluk değişimi ihmal edilerek) modele alınmaz. Eyleyici ve motor dinamiği de 8 durumlu modelde yoktur; girişler doğrudan yüzey açıları ve gaz koludur. Gövde ekseni matrisi koordinat dönüşümüyle rüzgâr eksenine çevrildiğinde \texttt{A\_Wind} ile bağıl farkı $3\times10^{-4}$'ü geçmez.
 
-\emph{Üç koşulun karşılaştırılması.} Tablo~\ref{tab:alin}, koşullar arasında değişen başlıca $A_W$ ve $B_W$ elemanlarını vermektedir. Dönüşte değişen hız sönümü ve açısal hız elemanları ($a_{11}$, $a_{13}$, $a_{67}$) Bölüm~V'te kararlılık parametreleriyle birlikte ele alınmıştır.
+LEF doğrusallaştırmada tarifesini izler: her bozulmuş durumda $\delta_{lef}$, bozulmuş $\alpha$ ve $\bar q/p_s=(\bar q/p_s)_1(V_T/U_1)^2$ değerlerinden Denk.~(\ref{eq:lef})'in kararlı hâliyle yeniden hesaplanır. Yalnızca Problem~2 (Bölüm~V), $\delta_{lef}$'in trim değerinde tutulduğu ikinci bir model kullanır. Tarife üç elemanı değiştirir: $\partial\delta_{lef}/\partial\alpha=1,38$ olduğundan flap $\alpha$ büyüdükçe burun aşağı moment ve sürükleme ekler; $a_{32}$ i, ii ve iii'te sırasıyla 1,93, 2,16 ve 2,42~s$^{-2}$ azalır, $a_{12}$ i ve iii'te 3,0 ve 3,3~m\,s$^{-2}$ azalır (ii'de neredeyse değişmez), $a_{22}$ ise 0,06~s$^{-1}$ artar.
+
+\subsection{Üç koşulun doğrusal modelleri}
+Tablo~\ref{tab:alin}, koşullar arasında değişen başlıca $A$ ve $B$ elemanlarını vermektedir. Dönüşte değişen hız sönümü ve açısal hız elemanları ($a_{11}$, $a_{13}$, $a_{67}$) Bölüm~V'te ele alınmıştır.
 \begin{itemize}
-\item $a_{32}$ (yunuslama direngenliği, LEF katkısıyla birlikte $M_\alpha$): ağırlık merkezinin $0,25\bar c$'den $0,35\bar c$'ye kayması $C_Z(0,35-x_{cg})$ moment taşımasını, yani kaldırmanın ağırlık merkezinin önündeki kararlılaştırıcı kolunu ortadan kaldırır ve $a_{32}$'nin işareti değişir. iii'te uçak yunuslamada statik olarak kararsızdır; LEF tarifesi kararsızlığı yalnızca azaltır. Dönüşte $\alpha_1$ daha büyük, $\bar q$ ise aynı olduğundan $a_{32}$'nin büyüklüğü \%9 artar.
-\item $a_{33}$ (yunuslama sönümü): sönümün ana kaynağı kuyruktur; iii'te kuyruğun ağırlık merkezine göre kolu kısaldığından sönüm \%36 azalır.
-\item $b_{32}$ (stabilatör etkinliği): aynı nedenle stabilatörün moment kolu ve dolayısıyla yunuslama kumanda gücü iii'te \%8 küçüktür.
-\item $a_{12}$ (hızın $\alpha$ ile değişimi): kanatlar düz uçuşta, sabit $\theta$'da $\alpha$ artınca uçuş yolu aşağı eğilir; yerçekiminin hızlandırıcı etkisi ($+g\cos\theta_1=9,8$~m\,s$^{-2}$) artan sürüklemenin yavaşlatıcı etkisinden büyüktür ve $a_{12}>0$ olur. $60^\circ$ dönüşte yerçekiminin yalnızca $g\cos\phi_1$ kadarı $\alpha$ düzleminde etkir; $C_{L_1}$ iki kat büyük olduğundan sürükleme eğimi de büyüktür (indüklenmiş sürükleme $\propto C_L^2$); bu yüzden $a_{12}$ belirgin biçimde negatif olur.
+\item $a_{32}$ (yunuslama direngenliği): ağırlık merkezinin $0,25\bar c$'den $0,35\bar c$'ye kayması Denk.~(\ref{eq:cm})'deki $C_Z(x_{cg,ref}-x_{cg})$ terimini, yani ağırlık merkezinin arkasındaki referans noktasında etkiyen normal kuvvetin kararlılaştırıcı kolunu ortadan kaldırır ve $a_{32}$'nin işareti değişir. iii'te uçak yunuslamada statik olarak kararsızdır; LEF tarifesi kararsızlığı yalnızca azaltır. Dönüşte $\alpha_1$ daha büyük, $\bar q$ ise aynı olduğundan $a_{32}$'nin büyüklüğü \%9 artar.
+\item $a_{33}$, $b_{32}$, $a_{75}$ (kuyruk kolu): iii'te yatay ve dikey kuyruğun ağırlık merkezine göre kolları kısalır; yunuslama sönümü \%36, stabilatör etkinliği \%8, yönsel direngenlik $N_\beta$ \%18 azalır.
+\item $a_{12}$ (hızın $\alpha$ ile değişimi): kanatlar düz uçuşta, sabit $\theta$'da $\alpha$ artınca uçuş yolu aşağı eğilir; yerçekiminin hızlandırıcı etkisi ($g\cos\theta_1=9,8$~m\,s$^{-2}$) artan sürüklemenin yavaşlatıcı etkisinden büyüktür ve $a_{12}>0$ olur. $60^\circ$ dönüşte yerçekiminin yalnızca $g\cos\phi_1$ kadarı $\alpha$ düzleminde etkir; $C_{L_1}$ iki kat büyük olduğundan indüklenmiş sürüklemenin eğimi de büyüktür ve $a_{12}$ belirgin biçimde negatif olur.
 \item $a_{15}$, $a_{18}$, $a_{43}$, $a_{47}$ (bağlaşım): düz uçuşta bağlaşım blokları sıfırdır. Dönüşte yan kayma ve yatış, yerçekiminin uçuş yolu boyunca bileşenini değiştirir ($a_{15}\approx g\cos\theta_1\sin\phi_1$); $\dot\theta=q\cos\phi-r\sin\phi$ kinematiği de $\theta$'yı hem $q$'ya hem $r$'ye bağlar. Böylece boyuna ve yanal-yönsel hareketler bağlaşık hâle gelir (Bölüm~VI).
-\item $a_{65}$ (dihedral etkisi): ok açılı kanadın dihedral etkisi $\alpha$ ve $C_L$ ile büyüdüğünden $L_\beta$ dönüşte \%33 büyüktür.
-\item $a_{75}$ (yönsel direngenlik): ağırlık merkezi geride olduğunda dikey kuyruk kolu kısalır ve $N_\beta$ iii'te \%18 küçülür.
-\item $a_{76}$: dönüşte trim açısal hızları sapma denklemine $\partial[\boldsymbol\omega\times\mathbf I\boldsymbol\omega]_z/\partial p=(I_{yy}-I_{xx})q_1$ eylemsizlik terimini ekler; bu yüzden $\partial\dot r/\partial p$ düz uçuştaki değerinin sekiz katıdır.
+\item $a_{65}$, $a_{76}$ (dönüşte yanal elemanlar): ok açılı kanadın dihedral etkisi $\alpha$ ile büyüdüğünden $L_\beta$ \%33 büyüktür; trim açısal hızları Denk.~(\ref{eq:rot})'in sapma satırına $(I_{xx}-I_{yy})q_1$ terimini eklediğinden $\partial\dot r/\partial p$ düz uçuştakinin sekiz katıdır.
 \end{itemize}
-Fiziksel olarak, öndeki ağırlık merkezinde uçak yunuslamada direngen ve iyi sönümlüdür; geride ağırlık merkezi, kumanda gücü daha az olan ve yunuslamada kararsız bir gövde verir; dönüş ise hızlı dinamiği neredeyse değiştirmeden iki hareket arasına kinematik ve eylemsizlik bağlaşımı ekler.
 
 \begin{table}[hbt!]
-\caption{\label{tab:alin} Koşullar arasında değişen $A_W$ ve $B_W$ elemanları (LEF tarifeli)}
+\caption{\label{tab:alin} Koşullar arasında değişen rüzgâr ekseni $A$ ve $B$ elemanları (LEF tarifeli)}
 \centering
 \begin{tabular}{llccc}
 \toprule
@@ -195,33 +429,33 @@ Eleman & Birim & i & ii & iii \\
 \end{tabular}
 \end{table}
 
-Şekil~\ref{fig:linnl}, iii koşulunda doğrusal ve doğrusal olmayan yanıtları karşılaştırır. Doğrusal modelde LEF tarifeli olduğunda iki yanıt 10~s boyunca bütün kanallarda örtüşür. $1^\circ$'lik bir ikili girişte ise doğrusal olmayan model kontrolden çıkar: trimde $\delta_{lef}=1,14^\circ$ olduğundan $\alpha$'daki $0,8^\circ$'lik burun aşağı değişim flapı $0^\circ$ sınırına dayandırır, kararlılaştırıcı geri besleme kaybolur ve sabit flaplı gövdenin hızlı yunuslama ıraksaması ortaya çıkar.
+\subsection{Doğrusal ve doğrusal olmayan yanıtlar}
+Şekil~\ref{fig:linnl}, iii koşulunda doğrusal ve doğrusal olmayan modellerin küçük kumanda girişlerine yanıtlarını karşılaştırır. $0,1^\circ$'lik girişlerde iki yanıt 10~s boyunca bütün kanallarda örtüşür; bu, doğrusal modelin LEF tarifesiyle birlikte doğru kurulduğunu gösterir. $1^\circ$'lik bir ikili girişte ise doğrusal olmayan model kontrolden çıkar: trimde $\delta_{lef}=1,14^\circ$ olduğundan $\alpha$'daki $0,8^\circ$'lik azalma flapı $0^\circ$ sınırına dayandırır, flabın kararlılaştırıcı geri beslemesi kaybolur ve sabit flaplı gövdenin hızlı yunuslama ıraksaması ortaya çıkar.
 
 \begin{figure}[hbt!]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/HW2_LinVsNonlin_iii.png}
+\includegraphics[width=0.8\textwidth]{figures/HW2_LinVsNonlin_iii.png}
 \caption{iii koşulunda doğrusal (kesikli, LEF tarifeli) ve doğrusal olmayan (sürekli) yanıtlar: $0,1^\circ$ stabilatör ikilisi (üst) ve $0,1^\circ$ kanatçık darbesi (alt).}
 \label{fig:linnl}
 \end{figure}
 
-\emph{Ödev~2'deki düzeltmeler.} Ödev~2 geri bildiriminden sonra:
+\subsection{Ödev~2'deki düzeltmeler}
+Ödev~2 geri bildiriminden sonra:
 \begin{enumerate}
-\item Durum 5'in yük faktörü artık $1/\cos\mu$'dür (Ders~4); önceden gövde ekseni normal ivmesi kullanılmıştı ve bu $1/\cos\mu=4,058$ veriyordu. Yeni trimde $\phi=75,95^\circ$ yerine $75,74^\circ$'dir (Tablo~\ref{tab:trim});
+\item Durum 5'in yük faktörü artık $1/\cos\mu$'dür (Ders~4); önceden gövde ekseni normal ivmesi kullanılmıştı ve bu $1/\cos\mu=4,058$ veriyordu. Yeni trimde $\phi=75,95^\circ$ yerine $75,74^\circ$'dir;
 \item doğrusallaştırmada $\delta_{lef}$ tarifeyi izler (önceden trim değerinde tutuluyordu); \texttt{A\_Body}, \texttt{B\_Body}, \texttt{A\_Wind} ve \texttt{B\_Wind} yeniden hesaplanmıştır;
-\item üç doğrusal modelin karşılaştırmasında her değişim artık açıklanmaktadır (yukarıda);
-\item kod sadeleştirilmiştir: trim, doğrusallaştırma ve benzetim kısa fonksiyonlardır, Ödev~2'deki ek kontroller çıkarılmıştır;
+\item üç doğrusal modelin karşılaştırmasında her değişimin nedeni açıklanmıştır (Bölüm~III.D);
+\item kod sadeleştirilmiştir: trim, doğrusallaştırma, LEF tarifesi ve benzetim kısa fonksiyonlardır (\texttt{trim\_F16}, \texttt{linearize\_F16}, \texttt{lefTarife}, \texttt{sim\_F16}); Ödev~2'deki ek kontroller çıkarılmıştır;
 \item Ödev~2 çözüm kılavuzunun iki kabulü benimsenmiştir: kütle $m=9295,4$~kg (önceden $W/g_0=9298,64$~kg) ve Ders~5'teki $10^{-3}$ adımı (önceden $V_T$ ile ölçeklenmiş $10^{-4}$).
 \end{enumerate}
-Bu kabullerle sonuçlar çözüm kılavuzuyla örtüşür. Bütün trim büyüklükleri kılavuzdakiyle aynıdır ya da son basamakta bir iki birim farklıdır (Durum 5: $\alpha=0,17666$ ve $0,17667$~rad, $\delta_T=\%81,129$ ve $\%81,131$); Durum 4 ve 5'teki $\mu=59,922^\circ$ ve $75,522^\circ$ değerleri aynıdır. Doğrusal modellerin elemanlarının çoğu son basamağa kadar aynıdır; $10^{-4}$ mertebesindeki farklar yalnızca $\beta$'ya göre türevlerdedir (ör. i koşulunda $a_{15}=0,0482$ ve $0,0488$). Aerodinamik tablolar $\beta=0$'da kırıldığından merkezi fark iki eğimin ortalamasını alır ve trimde kalan küçük sayısal $\beta$'ya biraz duyarlıdır.
-Bütün sonuçlar ayrıca $g$'nin 10\,000~ft'te \%0,1 küçük olduğu Bölüm~II.C'deki düzeltilmiş modelle yeniden hesaplanmıştır; bu, trim açılarını en fazla $0,01^\circ$ değiştirir. \texttt{run\_MT.m} i, ii ve iii koşullarında trimi ve doğrusallaştırmayı tekrarlar ve \texttt{HW2\_Group2.mat}'taki matrisleri aynen verir.
+Bu kabullerle sonuçlar çözüm kılavuzuyla örtüşür. Bütün trim büyüklükleri kılavuzdakiyle aynıdır ya da son basamakta bir iki birim farklıdır (Durum 5: $\alpha=0,17666$ ve $0,17667$~rad, $\delta_T=\%81,129$ ve $\%81,131$); Durum 4 ve 5'teki $\mu=59,922^\circ$ ve $75,522^\circ$ değerleri aynıdır. Doğrusal modellerin elemanlarının çoğu son basamağa kadar aynıdır; $10^{-4}$ mertebesindeki farklar yalnızca $\beta$'ya göre türevlerdedir (ör. i koşulunda $a_{15}=0,0482$ ve $0,0488$). Aerodinamik tablolar $\beta=0$'da kırıldığından merkezi fark iki eğimin ortalamasını alır ve trimde kalan küçük sayısal $\beta$'ya biraz duyarlıdır. Bütün sonuçlar ayrıca $g(h)$ içeren düzeltilmiş modelle yeniden hesaplanmıştır; bu, trim açılarını en fazla $0,01^\circ$ değiştirir. \texttt{run\_MT.m} i, ii ve iii koşullarında trimi ve doğrusallaştırmayı tekrarlar ve \texttt{HW2\_Group2.mat}'taki matrisleri aynen verir.
 
 \section{Trim Uçuşu Benzetimi}
 
-\subsection{Yöntem}
-Doğrusal olmayan model her trim noktasından başlatılır: rijit cisim durumları trim çözümünden, eyleyici durumları trim açılarından, motor gücü trim gaz kolunun kararlı güç seviyesinden alınır ve LEF filtresi kararlı hâle yerleştirilir. Stabilatör, kanatçık, dümen ve gaz kolu komutları trim değerlerinde tutulur; $\delta_{lef}$ tarifeyi izler. Model değişken adımlı çözücüsüyle (en büyük adım 0,01~s) çözülür ve sonuçlar \texttt{Sim\_i}, \texttt{Sim\_ii} ve \texttt{Sim\_iii} için 0,01~s aralıklarla yeniden örneklenir. i ve iii koşulları 60~s, ii koşulu ise yön açısı $360^\circ$ değişene kadar koşturulur.
+\emph{Problem 1.} Doğrusal olmayan model i, ii ve iii koşullarının trim noktalarından başlatılacak ve kumandalar trimde sabit tutularak i ile iii'te 60~s, ii'de bir tam dönüş boyunca koşturulacaktır.
 
-\subsection{Sonuçlar}
-Şekil~\ref{fig:sim_i}--\ref{fig:sim_iii} zaman geçmişlerini, Tablo~\ref{tab:sim} ise trimden en büyük sapmaları göstermektedir. Kumanda girişleri benzetim boyunca trim değerlerinde kalır.
+\subsection{Yöntem}
+Benzetimin başlangıç durumu, trimde kullanılan 18 durumun aynısıdır: rijit cisim durumları trim çözümünden, eyleyici durumları trim açılarından, motor gücü trim gaz kolunun kararlı güç seviyesinden alınır ve LEF filtresi kararlı hâle yerleştirilir. Stabilatör, kanatçık, dümen ve gaz kolu komutları trim değerlerinde tutulur; $\delta_{lef}$ tarifeyi izler. Model değişken adımlı çözücüsüyle (en büyük adım 0,01~s) çözülür ve sonuçlar \texttt{Sim\_i}, \texttt{Sim\_ii} ve \texttt{Sim\_iii} için 0,01~s aralıklarla yeniden örneklenir. i ve iii koşulları 60~s, ii koşulu ise yön açısı $360^\circ$ değişene kadar koşturulur. Şekil~\ref{fig:sim_i}--\ref{fig:sim_iii} zaman geçmişlerini, Tablo~\ref{tab:sim} trimden en büyük sapmaları göstermektedir.
 
 \begin{table}[hbt!]
 \caption{\label{tab:sim} Benzetimler sırasında trimden en büyük sapmalar (açılar derece, hızlar derece/s)}
@@ -235,51 +469,56 @@ Koşul & Süre [s] & $|\Delta V_T|$ [m/s] & $|\Delta\alpha|$ & $|\Delta\beta|$ &
 \end{tabular}
 \end{table}
 
-\emph{i koşulu.} Trim korunur: 60~s içinde hız $4\times10^{-4}$~m/s'den, duruş yaklaşık $10^{-4}$ dereceden, irtifa ise 1~cm'den az değişir. Kalan küçük hareket Bölüm~VI'daki modları gösterir. $V_T$, $\theta$ ve $h$ yaklaşık 45~s'lik yarım periyotla yavaşça salınır; bu, fugoid modudur (periyot 88~s). Yuvarlanma ve sapma hızlarında ilk 10~s içinde yaklaşık 1,8~s periyotlu sönümlü bir salınım görülür; bu, Hollanda yuvarlanmasıdır (1,84~s). Yatış açısı kararlı spiral modun zaman ölçeğinde ($\tau=89$~s) tek yönlü kayar. Hareketi trim artıkları ve çözücünün başlangıcı uyarır; bütün modlar kararlı olduğundan hareket sınırlı kalır.
-
-\emph{ii koşulu.} Bir tam dönüş 73,05~s sürer; trim çözümünden bulunan değer $2\pi/\dot\psi_1=73,04$~s'dir. Yer izi (Şekil~\ref{fig:track}) 2289~m yarıçaplı kapalı bir çemberdir; $V_T^2/(g\tan\phi)$ bağıntısı 2285~m verir. İrtifa 9~cm değişir. Yunuslama açısı ve sapma hızı yaklaşık 50~s periyotla salınır; bu değer tam modelin bağlaşık fugoid--spiral modunun 57~s'lik periyoduna yakındır (Bölüm~VI). Hollanda yuvarlanması geçici yanıtı yine 10~s içinde söner.
-
-\emph{iii koşulu.} Sapmalar salınım yapmadan tek yönlü büyür: yunuslama açısı 20, 40 ve 60~s'de sırasıyla $5,1\times10^{-4}$, $1,7\times10^{-3}$ ve $3,9\times10^{-3}$ derece değişir; uçak yavaşça burun aşağı döner, hızlanır ve alçalır. 40 ile 60~s arasındaki büyüme hızı yaklaşık 0,04~s$^{-1}$'dir. Bu değer, LEF tarifeli doğrusal modelin kararsız fugoidiyle (Bölüm~VI) uyumludur: $\lambda=0,034\pm0,083j$~s$^{-1}$, $t_2=20,5$~s. 76~s'lik periyodu benzetim süresinden uzun olduğundan hareket tek yönlü görünür. Büyüme hızındaki küçük fark, 8 durumlu modelde bulunmayan irtifa ve motor durumlarından gelir. LEF sabitken bulunan $+0,787$~s$^{-1}$'lik kök bir bozuntuyu 60~s'de $e^{47}$ katına çıkarırdı; benzetimde flap tarifesi etkin olduğundan bu kök görülmez. Dolayısıyla iii koşulunun trimi kararsız bir denge noktasıdır; sapmaların küçük kalmasının tek nedeni, başlangıç bozuntusunun trim artıkları mertebesinde olmasıdır.
+\subsection{i koşulu}
+Trim korunur: 60~s içinde hız $4\times10^{-4}$~m/s'den, duruş yaklaşık $10^{-4}$ dereceden, irtifa ise 1~cm'den az değişir. Kalan küçük hareket Bölüm~VI'daki modları gösterir. $V_T$, $\theta$ ve $h$ yaklaşık 45~s'lik yarım periyotla yavaşça salınır; bu, fugoid modudur (periyot 88~s). Yuvarlanma ve sapma hızlarında ilk 10~s içinde yaklaşık 1,8~s periyotlu sönümlü bir salınım görülür; bu, Hollanda yuvarlanmasıdır (1,84~s). Yatış açısı kararlı spiral modun zaman ölçeğinde ($\tau=89$~s) tek yönlü kayar. Hareketi trim artıkları ve çözücünün başlangıcı uyarır; bütün modlar kararlı olduğundan hareket sınırlı kalır.
 
 \begin{figure}[hbt!]
 \centering
-\includegraphics[width=\textwidth]{figures/MT_Sim_i.png}
+\includegraphics[width=0.8\textwidth]{figures/MT_Sim_i.png}
 \caption{Trim uçuşu benzetimi, i koşulu (kumandalar trimde sabit).}
 \label{fig:sim_i}
 \end{figure}
 
+\subsection{ii koşulu}
+Bir tam dönüş 73,05~s sürer; trim çözümünden bulunan değer $2\pi/\dot\psi_1=73,04$~s'dir. Yer izi (Şekil~\ref{fig:track}) 2289~m yarıçaplı kapalı bir çemberdir; $V_T^2/(g\tan\phi)$ bağıntısı 2285~m verir. İrtifa 9~cm değişir. Yunuslama açısı ve sapma hızı yaklaşık 50~s periyotla salınır; bu değer tam modelin bağlaşık fugoid--spiral modunun 57~s'lik periyoduna yakındır (Bölüm~VI). Hollanda yuvarlanması geçici yanıtı yine 10~s içinde söner.
+
 \begin{figure}[hbt!]
 \centering
-\includegraphics[width=\textwidth]{figures/MT_Sim_ii.png}
+\includegraphics[width=0.8\textwidth]{figures/MT_Sim_ii.png}
 \caption{Trim uçuşu benzetimi, ii koşulu (bir tam dönüş).}
 \label{fig:sim_ii}
 \end{figure}
 
 \begin{figure}[hbt!]
 \centering
-\includegraphics[width=0.85\textwidth]{figures/MT_Track_ii.png}
+\includegraphics[width=0.55\textwidth]{figures/MT_Track_ii.png}
 \caption{ii koşulunda yer izi ve üç boyutlu uçuş yolu (irtifa ekseni büyütülmüştür).}
 \label{fig:track}
 \end{figure}
 
+\subsection{iii koşulu}
+Sapmalar salınım yapmadan tek yönlü büyür: yunuslama açısı 20, 40 ve 60~s'de sırasıyla $5,1\times10^{-4}$, $1,7\times10^{-3}$ ve $3,9\times10^{-3}$ derece değişir; uçak yavaşça burun aşağı döner, hızlanır ve alçalır. 40 ile 60~s arasındaki büyüme hızı yaklaşık 0,04~s$^{-1}$'dir. Bu değer, LEF tarifeli doğrusal modelin kararsız fugoidiyle (Bölüm~VI) uyumludur: $\lambda=0,034\pm0,083j$~s$^{-1}$, $t_2=20,5$~s. 76~s'lik periyodu benzetim süresinden uzun olduğundan hareket tek yönlü görünür. Büyüme hızındaki küçük fark, 8 durumlu modelde bulunmayan irtifa ve motor durumlarından gelir. LEF sabitken bulunan $+0,787$~s$^{-1}$'lik kök bir bozuntuyu 60~s'de $e^{47}$ katına çıkarırdı; benzetimde flap tarifesi etkin olduğundan bu kök görülmez. Dolayısıyla iii koşulunun trimi kararsız bir denge noktasıdır; sapmaların küçük kalmasının tek nedeni, başlangıç bozuntusunun trim artıkları mertebesinde olmasıdır.
+
 \begin{figure}[hbt!]
 \centering
-\includegraphics[width=\textwidth]{figures/MT_Sim_iii.png}
+\includegraphics[width=0.8\textwidth]{figures/MT_Sim_iii.png}
 \caption{Trim uçuşu benzetimi, iii koşulu (kumandalar trimde sabit).}
 \label{fig:sim_iii}
 \end{figure}
 
 \section{Kararlılık Parametreleri}
 
-\subsection{Bağıntılar}
-Problem 2'de istendiği gibi bu bölümde $\delta_{lef}$'in trim değerinde tutulduğu rüzgâr ekseni matrisi kullanılır; böylece $A$ yalnızca gövdenin türevlerini içerir. Tarife etkin olsaydı $a_{32}$ flap momentini, $\partial C_m/\partial\delta_{lef}\cdot\partial\delta_{lef}/\partial\alpha$, de içerirdi (Bölüm~III.B). Ders~6'nın~\cite{lec6} boyuna durum değişkeni modeli (s.~24--25), $\Delta u$ yerine $\Delta V_T$ ve trimde $U_1=V_T$ alınarak
+\emph{Problem 2.} Rüzgâr ekseni $A$ matrislerinden boyutlu kararlılık parametreleri (\texttt{StabParams}) ve boyutsuz kararlılık türevleri (\texttt{StabDerivs}) çıkarılacak, işaretleri yorumlanacak ve uçağın statik kararlılığı değerlendirilecektir; ii koşulunun neden farklı olduğu açıklanacaktır. Problem metnine uygun olarak bu bölümde $\delta_{lef}$'in trim değerinde tutulduğu $A$ matrisi kullanılır; böylece $A$ yalnızca gövdenin türevlerini içerir. Tarife etkin olsaydı $a_{32}$ flap momentini, $\partial C_m/\partial\delta_{lef}\cdot\partial\delta_{lef}/\partial\alpha$, de içerirdi (Bölüm~III.C).
+
+\subsection{Matristen parametrelere}
+Ders~6'nın~\cite{lec6} boyuna durum değişkeni modeli (s.~24--25), $\Delta u$ yerine $\Delta V_T$ ve trimde $U_1=V_T$ alınarak
 \begin{equation}
 a_{11}=X_u+X_{T_u},\quad
 a_{31}=(M_u+M_{T_u})-\frac{M_{\dot\alpha}Z_u}{Z_{\dot\alpha}-U_1},\quad
 a_{32}=(M_\alpha+M_{T_\alpha})-\frac{M_{\dot\alpha}Z_\alpha}{Z_{\dot\alpha}-U_1},\quad
 a_{33}=M_q-\frac{M_{\dot\alpha}(Z_q+U_1)}{Z_{\dot\alpha}-U_1}
 \end{equation}
-verir. Yanal-yönsel modelde (s.~100--101) yuvarlanma ve sapma satırları eylemsizlik bağlaşımını içerir:
+verir. Yanal-yönsel modelde (s.~100--101) yuvarlanma ve sapma satırları Denk.~(\ref{eq:rot})'deki $I_{xz}$ bağlaşımını içerir:
 \begin{equation}
 a_{6k}=\frac{L_k+(I_{xz}/I_{xx})N_k}{1-I_{xz}^2/(I_{xx}I_{zz})},\qquad
 a_{7k}=\frac{N_k+(I_{xz}/I_{zz})L_k}{1-I_{xz}^2/(I_{xx}I_{zz})},\qquad k=\beta,p,r.
@@ -289,7 +528,7 @@ Bu bağıntı
 L_k=a_{6k}-\frac{I_{xz}}{I_{xx}}\,a_{7k},\qquad N_k=a_{7k}-\frac{I_{xz}}{I_{zz}}\,a_{6k}
 \label{eq:invert}
 \end{equation}
-şeklinde ters çevrilir. $p$ ve $r$ gövde ekseni hızları olduğundan Bölüm~II'deki gövde ekseni eylemsizlikleri kullanılır ve elde edilen türevler gövde ekseni türevleridir. Boyutsuz türevler Ders~5'teki~\cite{lec5} tanımlardan (s.~116 ve 123) bulunur:
+şeklinde ters çevrilir. $p$ ve $r$ gövde ekseni hızları olduğundan Bölüm~II.F'deki gövde ekseni eylemsizlikleri kullanılır ve elde edilen türevler gövde ekseni türevleridir. Boyutsuz türevler Ders~5'teki~\cite{lec5} tanımlardan (s.~116 ve 123) bulunur:
 \begin{gather}
 X_u=-\frac{\bar q_1S}{mU_1}(C_{D_u}+2C_{D_1}),\quad
 M_u=\frac{\bar q_1S\bar c}{I_{yy}U_1}(C_{m_u}+2C_{m_1}),\quad
@@ -300,27 +539,7 @@ N_\beta=\frac{\bar q_1Sb}{I_{zz}}C_{n_\beta},\quad
 L_{p,r}=\frac{\bar q_1Sb^2}{2I_{xx}U_1}C_{l_{p,r}},\quad
 N_{p,r}=\frac{\bar q_1Sb^2}{2I_{zz}U_1}C_{n_{p,r}}.
 \end{gather}
-Üç koşulda da $U_1=196,92$~m/s ve $\bar q_1=17\,564$~Pa'dır.
-
-\emph{İtki.} İtki gövde $x$ ekseni boyunca etki ettiğinden $\dot V_T$'ye katkısı $T\cos\alpha\cos\beta/m$'dir ve
-\begin{equation}
-X_{T_u}=\frac{\cos\alpha_1\cos\beta_1}{m}\frac{\partial T}{\partial V_T}\bigg|_{\delta_T,h}
-\end{equation}
-olur. Türev, uçak modelinin İtki bloğu tek başına, trim gaz kolu ve irtifasında, motor kararlı hâldeyken $M=0,6\pm0,001$'de çalıştırılarak hesaplanır. Böylece $X_u=a_{11}-X_{T_u}$ bulunur.
-
-\emph{Trim katsayıları.} Trimdeki $\dot V_T$ denkleminden $C_{D_1}=(T_1\cos\alpha_1\cos\beta_1-mg\sin\gamma_1)/(\bar q_1S)$ ve $C_{L_1}=(mg\cos\gamma_1/\cos\phi_1-T_1\sin\alpha_1)/(\bar q_1S)$ elde edilir. Düz uçuşta trimdeki aerodinamik yunuslama momenti sıfırdır, $C_{m_1}=0$. Dönüşte bu moment eylemsizlik ve jiroskopik momentleri dengeler: $C_{m_1}=[\boldsymbol\omega_1\times(\mathbf I\boldsymbol\omega_1+\mathbf h_E)]_y/(\bar q_1S\bar c)=1,0\times10^{-5}$; bu değer ihmal edilebilir ve sıfır alınmıştır. Tablo~\ref{tab:p2trim} bu büyüklükleri, Tablo~\ref{tab:aelem} kullanılan $A$ elemanlarını, Tablo~\ref{tab:params} ve \ref{tab:derivs} ise sonuçları vermektedir.
-
-\begin{table}[hbt!]
-\caption{\label{tab:p2trim} Türevler için kullanılan trim büyüklükleri}
-\centering
-\begin{tabular}{ccccc}
-\toprule
-Koşul & $T_1$ [N] & $\partial T/\partial V_T$ [N\,s/m] & $C_{L_1}$ & $C_{D_1}$ \\
-\midrule
-\tabinput{tables/p2trim.tex}
-\bottomrule
-\end{tabular}
-\end{table}
+Üç koşulda da $U_1=196,92$~m/s ve $\bar q_1=17\,564$~Pa'dır. Tablo~\ref{tab:aelem} kullanılan $A$ elemanlarını vermektedir.
 
 \begin{table}[hbt!]
 \caption{\label{tab:aelem} Problem 2'de kullanılan rüzgâr ekseni $A$ matrisi elemanları ($\delta_{lef}$ sabit)}
@@ -330,6 +549,27 @@ Koşul & $T_1$ [N] & $\partial T/\partial V_T$ [N\,s/m] & $C_{L_1}$ & $C_{D_1}$ 
 Eleman & Birim & i & ii & iii \\
 \midrule
 \tabinput{tables/aelem.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{İtki ve trim katsayıları}
+İtki gövde $x$ ekseni boyunca etki ettiğinden $\dot V_T$'ye katkısı $T\cos\alpha\cos\beta/m$'dir ve
+\begin{equation}
+X_{T_u}=\frac{\cos\alpha_1\cos\beta_1}{m}\frac{\partial T}{\partial V_T}\bigg|_{\delta_T,h}
+\end{equation}
+olur. Türev, modelin İtki alt sistemi tek başına, trim gaz kolu ve irtifasında, motor kararlı hâldeyken $M=0,6\pm0,001$'de çalıştırılarak hesaplanır; böylece $X_u=a_{11}-X_{T_u}$ bulunur.
+
+Trimdeki $\dot V_T$ denkleminden $C_{D_1}=(T_1\cos\alpha_1\cos\beta_1-mg\sin\gamma_1)/(\bar q_1S)$ ve $C_{L_1}=(mg\cos\gamma_1/\cos\phi_1-T_1\sin\alpha_1)/(\bar q_1S)$ elde edilir. Düz uçuşta trimdeki aerodinamik yunuslama momenti sıfırdır, $C_{m_1}=0$. Dönüşte bu moment eylemsizlik ve jiroskopik momentleri dengeler: $C_{m_1}=[\boldsymbol\omega_1\times(\mathbf I\boldsymbol\omega_1+\mathbf h_E)]_y/(\bar q_1S\bar c)=1,0\times10^{-5}$; bu değer ihmal edilebilir ve sıfır alınmıştır. Tablo~\ref{tab:p2trim} bu büyüklükleri, Tablo~\ref{tab:params} ve \ref{tab:derivs} sonuçları vermektedir.
+
+\begin{table}[hbt!]
+\caption{\label{tab:p2trim} Türevler için kullanılan trim büyüklükleri}
+\centering
+\begin{tabular}{ccccc}
+\toprule
+Koşul & $T_1$ [N] & $\partial T/\partial V_T$ [N\,s/m] & $C_{L_1}$ & $C_{D_1}$ \\
+\midrule
+\tabinput{tables/p2trim.tex}
 \bottomrule
 \end{tabular}
 \end{table}
@@ -361,11 +601,11 @@ Türev & i & ii & iii & Olağan işaret \\
 \subsection{Modelde sıfır olan terimler}
 \begin{itemize}
 \item $Z_{\dot\alpha}=M_{\dot\alpha}=0$: TP-1538 verilerinde $\dot\alpha$ türevleri yoktur; bu nedenle $a_{31}$, $a_{32}$ ve $a_{33}$'teki düzeltme terimleri sıfırdır ve $a_{32}=M_\alpha+M_{T_\alpha}$, $a_{33}=M_q$ olur.
-\item $M_{T_u}=M_{T_\alpha}=0$ ve $N_{T_\beta}=0$: itki gövde $x$ ekseni boyunca ve ağırlık merkezinden etki eder, $\alpha$ veya $\beta$'ya bağlı değildir; motor modelinde hava alığı momentum terimleri yoktur.
-\item $C_{D_u}$ ve $C_{m_u}$ düz uçuşta (i ve iii) sıfırdır ($10^{-9}$ mertebesinde, yani sayısal sıfır): aerodinamik tablolar Mach sayısına bağlı olmadığından sabit $\alpha$'da hız değişimi kuvvet ve momentleri yalnızca $\bar q$ ile ölçekler; bu etki $2C_{D_1}$ ve $2C_{m_1}$ terimlerinde zaten vardır. Aynı nedenle düz uçuşta $C_{m_1}=0$'dır; orada yalnızca aerodinamik moment dengelenir.
+\item $M_{T_u}=M_{T_\alpha}=0$ ve $N_{T_\beta}=0$: itki gövde $x$ ekseni boyunca ve ağırlık merkezinden etki eder, $\alpha$ veya $\beta$'ya bağlı değildir; motor modelinde hava alığı momentum terimleri yoktur (Bölüm~II.E).
+\item $C_{D_u}$ ve $C_{m_u}$ düz uçuşta (i ve iii) sayısal olarak sıfırdır ($10^{-9}$ mertebesinde): aerodinamik tablolar Mach sayısına bağlı olmadığından sabit $\alpha$'da hız değişimi kuvvet ve momentleri yalnızca $\bar q$ ile ölçekler; bu etki $2C_{D_1}$ ve $2C_{m_1}$ terimlerinde zaten vardır.
 \item $X_{T_u}$ sıfır değildir: bu koşulda itki Mach sayısıyla hafifçe azalır ($\partial T/\partial V_T\approx-35$~N\,s/m); böylece i koşulunda motor hız sönümüne yaklaşık \%23 katkı yapar.
 \end{itemize}
-Buna karşılık ders modeli $C_{D_q}\approx0$ (yani $X_q=0$) kabul eder; F-16 verilerinde eksenel kuvvette sönüm terimleri bulunduğundan $a_{13}=\partial\dot V_T/\partial q=-0,138$~(m/s)/(rad/s) elemanı sıfır değildir.
+Buna karşılık ders modeli $C_{D_q}\approx0$ (yani $X_q=0$) kabul eder; F-16 verilerinde eksenel kuvvette sönüm terimi ($C_{X_q}$) bulunduğundan $a_{13}=\partial\dot V_T/\partial q=-0,138$~(m/s)/(rad/s) elemanı sıfır değildir.
 
 \subsection{İşaretler ve statik kararlılık}
 i ve ii koşullarında bütün türevler olağan işaretlerine sahiptir; olağan işareti tanımlı olmayan türevler ($C_{D_u}$, $C_{m_u}$, $C_{n_p}$) küçüktür. iii koşulunda $C_{m_\alpha}=+0,156$~rad$^{-1}$'in işareti terstir. Dolayısıyla uçak
@@ -373,14 +613,14 @@ i ve ii koşullarında bütün türevler olağan işaretlerine sahiptir; olağan
 \item i ve ii koşullarında yunuslama, yuvarlanma ve sapmada statik olarak kararlıdır ($C_{m_\alpha}<0$, $C_{l_\beta}<0$, $C_{n_\beta}>0$);
 \item iii koşulunda yunuslamada statik olarak kararsız, yuvarlanma ve sapmada ise kararlıdır.
 \end{itemize}
-i ile iii arasındaki fark, Bölüm~II'deki $C_m\leftarrow C_m+C_Z(0,35-x_{cg})$ moment taşımasıdır; bu terim $x_{cg}=0,35$'te sıfırlanır. Terim $C_{m_\alpha}$'yı $0,10\,C_{Z_\alpha}=-0,386$~rad$^{-1}$ kadar kaydırır; buradan $C_{Z_\alpha}\approx-3,86$~rad$^{-1}$ ve nötr nokta yaklaşık $0,35-0,156/3,86\approx0,31\bar c$ bulunur. Bu, Ödev~1'de bulunan $-\%4\,\bar c$'lik statik marjla uyumludur. Aynı terim $C_{m_q}$'ya $0,10\,C_{Z_q}$ ekler; öndeki ağırlık merkezinde yunuslama sönümünün daha büyük olmasının ($-8,22$'ye karşı $-5,23$) nedeni budur. $0,35\bar c$'de dikey kuyruğun moment kolunun kısalması da $C_{n_\beta}$'yı 0,219'dan 0,181'e düşürür.
+i ile iii arasındaki fark, Denk.~(\ref{eq:cm})'deki $C_Z(x_{cg,ref}-x_{cg})$ teriminden gelir; bu terim $x_{cg}=0,35$'te sıfırlanır. Terim $C_{m_\alpha}$'yı $0,10\,C_{Z_\alpha}=-0,386$~rad$^{-1}$ kadar kaydırır; buradan $C_{Z_\alpha}\approx-3,86$~rad$^{-1}$ ve nötr nokta yaklaşık $0,35-0,156/3,86\approx0,31\bar c$ bulunur. Bu, Ödev~1'de bulunan $-\%4\,\bar c$'lik statik marjla uyumludur (Bölüm~II.H). Aynı terim $C_{m_q}$'ya $0,10\,C_{Z_q}$ ekler; öndeki ağırlık merkezinde yunuslama sönümünün daha büyük olmasının ($-8,22$'ye karşı $-5,23$) nedeni budur. $0,35\bar c$'de dikey kuyruğun moment kolunun kısalması da $C_{n_\beta}$'yı 0,219'dan 0,181'e düşürür.
 
 \subsection{ii koşulu}
 Ders~5'teki bağıntılar $p_1=q_1=r_1=\phi_1=0$ olan kararlı düz uçuş için türetilmiştir (s.~13 ve 16). Dönüşte değerler üç nedenle farklıdır.
 
-\emph{Aerodinamik durum.} Trim hücum açısı $1,68^\circ$ yerine $4,55^\circ$, $\delta_{lef}$ ise $1,49^\circ$ yerine $5,45^\circ$'tir; dolayısıyla tablolar farklı bir noktada okunur. Dihedral etkisi $\alpha$ ile büyür ($C_{l_\beta}$: $-0,102$'den $-0,134$'e); kaldırma ile ölçeklenen $C_{l_r}$ de büyür.
+\emph{Aerodinamik durum.} Trim hücum açısı $1,68^\circ$ yerine $4,55^\circ$, $\delta_{lef}$ ise $1,48^\circ$ yerine $5,45^\circ$'tir; dolayısıyla tablolar farklı bir noktada okunur. Dihedral etkisi $\alpha$ ile büyür ($C_{l_\beta}$: $-0,102$'den $-0,134$'e); kaldırma ile ölçeklenen $C_{l_r}$ de büyür.
 
-\emph{Eylemsizlik terimleri.} $\boldsymbol\omega_1\neq0$ olduğunda hareket denklemlerindeki (Denk.~\ref{eq:eom}) $\boldsymbol\omega\times\mathbf I\boldsymbol\omega$ eylemsizlik teriminin ve motor momenti $\mathbf M_T$'nin, yani birlikte $\boldsymbol\omega\times(\mathbf I\boldsymbol\omega+\mathbf h_E)$ teriminin, $p$, $q$ ve $r$'ye göre Jacobian'ı sıfır değildir ve $A$'nın hız sütunlarında aerodinamik sönümle birlikte görünür. Denk.~(\ref{eq:invert}) $I_{xz}$ bağlaşımını ayırır, ancak bu terimleri ayırmaz. En büyüğü $\partial[\boldsymbol\omega\times\mathbf I\boldsymbol\omega]_z/\partial p=(I_{yy}-I_{xx})q_1=4,67\times10^{3}$~N\,m\,s'dir ve $C_{n_p}$'nin işaretini değiştirir. Jacobian $\mathbf I A$'ya geri eklendiğinde yalnızca aerodinamik kısım elde edilir (Tablo~\ref{tab:turnaero}); \texttt{StabDerivs} ise istendiği gibi doğrudan $A$'dan bulunan değerleri içerir.
+\emph{Eylemsizlik terimleri.} $\boldsymbol\omega_1\neq0$ olduğunda Denk.~(\ref{eq:rot})'teki $\boldsymbol\omega\times\mathbf I\boldsymbol\omega$ teriminin ve motor momenti $\mathbf M_T$'nin, yani birlikte $\boldsymbol\omega\times(\mathbf I\boldsymbol\omega+\mathbf h_E)$ teriminin, $p$, $q$ ve $r$'ye göre Jacobian'ı sıfır değildir ve $A$'nın hız sütunlarında aerodinamik sönümle birlikte görünür. Denk.~(\ref{eq:invert}) $I_{xz}$ bağlaşımını ayırır, ancak bu terimleri ayırmaz. En büyüğü $\partial[\boldsymbol\omega\times\mathbf I\boldsymbol\omega]_z/\partial p=(I_{yy}-I_{xx})q_1=4,67\times10^{3}$~N\,m\,s'dir ve $C_{n_p}$'nin işaretini değiştirir. Jacobian $\mathbf I A$'ya geri eklendiğinde yalnızca aerodinamik kısım elde edilir (Tablo~\ref{tab:turnaero}); \texttt{StabDerivs} ise istendiği gibi doğrudan $A$'dan bulunan değerleri içerir.
 
 \emph{Trimdeki açısal hız terimleri.} $q_1$ sabitken hız değiştiğinde $\hat q_1=q_1\bar c/(2U_1)$ değişir; bu yüzden sönüm terimleri $C_{m_u}$ ve $C_{D_u}$'yu sıfırdan farklı yapar: $C_{m_u}=-C_{m_q}\hat q_1=8,37\times6,52\times10^{-4}=0,0055$ (Tablo~\ref{tab:derivs}).
 
@@ -398,8 +638,10 @@ Ders~5'teki bağıntılar $p_1=q_1=r_1=\phi_1=0$ olan kararlı düz uçuş için
 
 \section{Dinamik Modlar}
 
+\emph{Problem 3.} Her koşulda tam $8\times8$ $A$ matrisinin ve ayrık $A_{11}$, $A_{22}$ bloklarının özdeğerleri ve modları (\texttt{Eig\_Full}, \texttt{Eig\_Lon}, \texttt{Eig\_Lat}, \texttt{Modes\_Full}, \texttt{Modes\_Dec}) hesaplanacak, koşullar ve iki model karşılaştırılacaktır.
+
 \subsection{Yöntem}
-Her koşulda LEF tarifeli tam rüzgâr ekseni $A$ matrisinin (Bölüm~III'teki \texttt{A\_Wind}) ve $A_{11}$ ile $A_{22}$ bloklarının özdeğerleri hesaplanır. $\lambda=-\zeta\omega_n\pm j\omega_n\sqrt{1-\zeta^2}$ karmaşık eşleniği için $\omega_n=|\lambda|$, $\zeta=-\operatorname{Re}\lambda/|\lambda|$, periyot $2\pi/|\operatorname{Im}\lambda|$ ve $\tau=-1/\operatorname{Re}\lambda$'dır; gerçel bir kök için $\tau=-1/\lambda$'dır. Genliğin yarıya inme ve iki katına çıkma süreleri $t_{1/2}=\tau\ln2$ ($\tau>0$) ve $t_2=-\tau\ln2$ ($\tau<0$) ile bulunur~\cite{lec6}. Tam modelde modlar özvektörlerden belirlenir: $\Delta V_T$, $1/U_1$ ile ölçeklendikten sonra bir özvektörün boyuna payı, kare normunun ilk dört durumdaki kesridir ve payı en büyük dört kök boyuna kabul edilir. Boyuna köklerden büyüklüğü en büyük olan kısa periyot, kalan karmaşık eşlenik fugoiddir. Yanal-yönsel köklerden karmaşık eşlenik Hollanda yuvarlanması, hızlı ve yavaş gerçel kökler ise yuvarlanma ve spiral modlarıdır. Ayrık bloklar da aynı biçimde sınıflandırılır.
+Bu bölümde LEF tarifeli tam rüzgâr ekseni matrisi (Bölüm~III'teki \texttt{A\_Wind}) kullanılır; bu matris, benzetimdeki gibi flabın tarifesini izlediği uçağı temsil eder. $\lambda=-\zeta\omega_n\pm j\omega_n\sqrt{1-\zeta^2}$ karmaşık eşleniği için $\omega_n=|\lambda|$, $\zeta=-\operatorname{Re}\lambda/|\lambda|$, periyot $2\pi/|\operatorname{Im}\lambda|$ ve $\tau=-1/\operatorname{Re}\lambda$'dır; gerçel bir kök için $\tau=-1/\lambda$'dır. Genliğin yarıya inme ve iki katına çıkma süreleri $t_{1/2}=\tau\ln2$ ($\tau>0$) ve $t_2=-\tau\ln2$ ($\tau<0$) ile bulunur~\cite{lec6}. Tam modelde modlar özvektörlerden belirlenir: $\Delta V_T$, $1/U_1$ ile ölçeklendikten sonra bir özvektörün boyuna payı, kare normunun ilk dört durumdaki kesridir ve payı en büyük dört kök boyuna kabul edilir. Boyuna köklerden büyüklüğü en büyük olan kısa periyot, kalan karmaşık eşlenik fugoiddir. Yanal-yönsel köklerden karmaşık eşlenik Hollanda yuvarlanması, hızlı ve yavaş gerçel kökler ise yuvarlanma ve spiral modlarıdır. Ayrık bloklar da aynı biçimde sınıflandırılır.
 
 \begin{table}[hbt!]
 \caption{\label{tab:modes} Tam $8\times8$ modelin modları (\texttt{Modes\_Full}); süreler s, $\omega_n$ rad/s}
@@ -415,6 +657,43 @@ Koşul & Mod & $\lambda$ [s$^{-1}$] & $\omega_n$ & $\zeta$ & Periyot & $\tau$ & 
 \end{tabular}
 \end{table}
 
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/MT_Eigenvalues.png}
+\caption{Tam modelin ve ayrık blokların özdeğerleri (üst) ve başlangıç noktası yakınındaki yavaş modlar (alt).}
+\label{fig:eig}
+\end{figure}
+
+\subsection{Koşulların karşılaştırılması}
+Tablo~\ref{tab:modes} ve Şekil~\ref{fig:eig} sonuçları vermektedir. i koşulunda bütün modlar kararlı ve klasik yapıdadır: iyi sönümlü bir kısa periyot ($\omega_n=2,85$~rad/s, $\zeta=0,45$), 88~s periyotlu, az sönümlü bir fugoid, hızlı bir yuvarlanma modu ($\tau=0,29$~s), kararlı bir spiral mod ($t_{1/2}=61$~s) ve az sönümlü bir Hollanda yuvarlanması ($\omega_n=3,44$~rad/s, $\zeta=0,12$). LEF tarifesi yunuslama direngenliği eklediğinden kısa periyot frekansını 2,53'ten 2,85~rad/s'ye çıkarır (sabit flap: $-1,311\pm2,166j$).
+
+Ağırlık merkezinin $0,35\bar c$'ye kaydırılması (iii koşulu) $a_{32}$'yi pozitif yapar (Tablo~\ref{tab:alin}). Kısa periyot eşleniği iki gerçel köke ayrılır: $-1,978$~s$^{-1}$'de hızlı kararlı bir kök ve $-0,075$~s$^{-1}$'de yavaş bir kök. Yavaş kök fugoide yakındır ve onunla bağlaşır; fugoid eşleniği sağ yarı düzleme geçer: $0,034\pm0,083j$~s$^{-1}$ ($\zeta=-0,38$, $t_2=20,5$~s). Bölüm~IV'teki benzetimde görülen yavaş ıraksama budur. Flap sabitken gövdenin $M_\alpha=+3,47$~s$^{-2}$'dir ve $+0,787$~s$^{-1}$'de kararsız bir kökü vardır ($t_2=0,88$~s). LEF tarifesi yunuslama direngenliğini $a_{32}=+1,06$~s$^{-2}$'ye indirir; bu, kökü sol yarı düzleme geri almaya yeter, ancak uçağı statik olarak kararlı yapmaz. Azalan yönsel kararlılık Hollanda yuvarlanması frekansını 3,12~rad/s'ye düşürür; yuvarlanma ve spiral modları az değişir.
+
+Dönüşte (ii koşulu) hızlı modlar i koşuluna göre az değişir: kısa periyot biraz daha direngendir ($\omega_n=2,96$~rad/s); Hollanda yuvarlanmasının sönümü 0,14'e çıkar, yuvarlanma modu ise $\tau=0,32$~s'ye yavaşlar. En çok değişen yavaş modlardır; bunun nedeni Bölüm~VI.D'de açıklanan bağlaşımdır.
+
+\subsection{Uçuş nitelikleri}
+Tablo~\ref{tab:hq}, modları Ders~7'deki~\cite{lec7} MIL-F-8785C sınırlarıyla karşılaştırır. F-16 bir Sınıf~IV uçağıdır; incelenen seyir koşulları Kategori~B uçuş fazına girer. i ve ii koşulları bütün modlarda Seviye~1 sınırlarını sağlar. iii koşulunda yanal-yönsel modlar Seviye~1'dedir; ancak kararsız fugoidin $t_2=20,5$~s'lik iki katına çıkma süresi Seviye~3'ün $T_2\ge55$~s şartını sağlamaz ve kısa periyot iki gerçel köke ayrılmıştır. Dolayısıyla iii koşulu, LEF tarifesine rağmen kararlılık artırımı yapan bir uçuş kontrol sistemi gerektirir; bu, gerçek F-16'nın gevşetilmiş statik kararlılık tasarımıyla uyumludur. Ders~7'de belirtildiği gibi uçuş kontrollü uçaklar için güncel ölçüt MIL-STD-1797A'dır; buradaki karşılaştırma kumandasız gövde içindir.
+
+\begin{table}[hbt!]
+\caption{\label{tab:hq} MIL-F-8785C, Sınıf IV, Kategori B: Seviye~1 sınırları ve tam modelin değerleri}
+\centering
+\small
+\begin{tabular}{llccc}
+\toprule
+Mod & Seviye~1 sınırı & i & ii & iii \\
+\midrule
+Kısa periyot & $0,30\le\zeta\le2,0$ & $0,450$ & $0,442$ & gerçel kökler \\
+Fugoid & $\zeta>0,04$ & $0,105$ & $0,101$ & $-0,377$ ($t_2=20,5$~s) \\
+Hollanda yuvarlanması & $\zeta\ge0,08$, $\zeta\omega_n\ge0,15$, $\omega_n\ge0,4$ & $0,120$; $0,41$; $3,44$ & $0,137$; $0,50$; $3,69$ & $0,122$; $0,38$; $3,12$ \\
+Yuvarlanma & $\tau\le1,4$~s & $0,29$ & $0,32$ & $0,29$ \\
+Spiral & $T_2\ge20$~s & kararlı & kararlı & kararlı \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Tam ve ayrık modeller}
+Düz uçuşta (i ve iii) $A_{12}$ ve $A_{21}$ bağlaşım blokları sıfırdır; tam model ile ayrık blokların modları yaklaşık $10^{-5}$ bağıl farkla örtüşür. Dönüşte ise bağlaşım blokları sıfır değildir: yatış açısı düşey kuvvet dengesine girer ($\partial\dot V_T/\partial\phi=-0,673$, $\partial\dot V_T/\partial\beta=8,56$) ve trim açısal hızları yunuslama ile sapmayı birbirine bağlar. Hızlı modlar neredeyse etkilenmez (Tablo~\ref{tab:modesdec}); ancak frekansları birbirine yakın olan fugoid ve spiral modları etkileşir. Tam modelde fugoid periyodu 111~s'den 57~s'ye, sönümü 0,21'den 0,10'a düşer; spiral zaman sabiti ise 126~s'den 116~s'ye değişir. Özvektörler bu karışımı doğrular: boyuna pay fugoid eşleniği için 0,68, spiral kök için 0,48'dir. Fiziksel olarak, dönüşte yatış açısındaki bir değişim kaldırmanın düşey bileşenini değiştirir ve hız değişimiyle birlikte bir tırmanma veya alçalma başlatır; ortaya çıkan hız ve yunuslama değişimleri de dönüşü değiştirir. Bu nedenle ayrık bloklar dönüş uçuşundaki yavaş dinamiği yanlış temsil eder; orada tam model kullanılmalıdır.
+
 \begin{table}[hbt!]
 \caption{\label{tab:modesdec} ii koşulunda ayrık $A_{11}$ ve $A_{22}$ bloklarının modları (\texttt{Modes\_Dec})}
 \centering
@@ -428,37 +707,19 @@ Mod & $\lambda$ [s$^{-1}$] & $\omega_n$ & $\zeta$ & Periyot & $\tau$ & $t_{1/2}$
 \end{tabular}
 \end{table}
 
-\begin{figure}[hbt!]
-\centering
-\includegraphics[width=\textwidth]{figures/MT_Eigenvalues.png}
-\caption{Tam modelin ve ayrık blokların özdeğerleri (üst) ve başlangıç noktası yakınındaki yavaş modlar (alt).}
-\label{fig:eig}
-\end{figure}
-
-\subsection{Koşulların karşılaştırılması}
-Tablo~\ref{tab:modes} ve Şekil~\ref{fig:eig} sonuçları vermektedir. i koşulunda bütün modlar kararlı ve klasik yapıdadır: iyi sönümlü bir kısa periyot ($\omega_n=2,85$~rad/s, $\zeta=0,45$), 88~s periyotlu, az sönümlü bir fugoid, hızlı bir yuvarlanma modu ($\tau=0,29$~s), kararlı bir spiral mod ($t_{1/2}=61$~s) ve az sönümlü bir Hollanda yuvarlanması ($\omega_n=3,44$~rad/s, $\zeta=0,12$). LEF tarifesi yunuslama direngenliği eklediğinden kısa periyot frekansını 2,53'ten 2,85~rad/s'ye çıkarır (sabit flap: $-1,311\pm2,166j$).
-
-Ağırlık merkezinin $0,35\bar c$'ye kaydırılması (iii koşulu) $a_{32}$'yi pozitif yapar (Tablo~\ref{tab:alin}). Kısa periyot eşleniği iki gerçel köke ayrılır: $-1,978$~s$^{-1}$'de hızlı kararlı bir kök ve $-0,075$~s$^{-1}$'de yavaş bir kök. Yavaş kök fugoide yakındır ve onunla bağlaşır; fugoid eşleniği sağ yarı düzleme geçer: $0,034\pm0,083j$~s$^{-1}$ ($\zeta=-0,38$, $t_2=20,5$~s). Bölüm~IV'teki benzetimde görülen yavaş salınımlı ıraksama budur. Flap sabitken gövdenin $M_\alpha=+3,47$~s$^{-2}$'dir ve $+0,787$~s$^{-1}$'de kararsız bir kökü vardır ($t_2=0,88$~s). LEF tarifesi yunuslama direngenliğini $a_{32}=+1,06$~s$^{-2}$'ye indirir; bu, kökü sol yarı düzleme geri almaya yeter, ancak uçağı statik olarak kararlı yapmaz. Azalan yönsel kararlılık Hollanda yuvarlanması frekansını 3,12~rad/s'ye düşürür; yuvarlanma ve spiral modları az değişir.
-
-Dönüşte (ii koşulu) hızlı modlar i koşuluna göre az değişir: kısa periyot biraz daha direngendir ($\omega_n=2,96$~rad/s); Hollanda yuvarlanmasının sönümü 0,14'e çıkar, yuvarlanma modu ise $\tau=0,32$~s'ye yavaşlar. En çok değişen yavaş modlardır; bunun nedeni aşağıda açıklanan bağlaşımdır.
-
-Karşılaştırma için, Sınıf IV bir uçağın Kategori B uçuş fazındaki MIL-F-8785C sınırlarına göre~\cite{lec7}, i ve ii koşulları kısa periyot sönümü ($0,30\le\zeta\le2$), fugoid sönümü ($\zeta>0,04$), Hollanda yuvarlanması ($\zeta\ge0,08$, $\zeta\omega_n\ge0,15$, $\omega_n\ge0,4$) ve yuvarlanma zaman sabiti ($\tau\le1,4$~s) için Seviye~1 sınırlarını sağlar ve spiral modları kararlıdır. iii koşulunun $t_2=20,5$~s olan kararsız fugoidi ise Seviye~3'ün $T_2\ge55$~s şartını sağlamaz; dolayısıyla iii koşulu LEF tarifesine rağmen uçuş kontrol sistemi gerektirir.
-
-\subsection{Tam ve ayrık modeller}
-Düz uçuşta (i ve iii) $A_{12}$ ve $A_{21}$ bağlaşım blokları sıfırdır; tam model ile ayrık blokların modları yaklaşık $10^{-5}$ bağıl farkla örtüşür. Dönüşte ise bağlaşım blokları sıfır değildir: yatış açısı düşey kuvvet dengesine girer ($\partial\dot V_T/\partial\phi=-0,673$, $\partial\dot V_T/\partial\beta=8,56$) ve trim açısal hızları yunuslama ile sapmayı birbirine bağlar. Hızlı modlar neredeyse etkilenmez (Tablo~\ref{tab:modesdec}); ancak frekansları birbirine yakın olan fugoid ve spiral modları etkileşir. Tam modelde fugoid periyodu 111~s'den 57~s'ye, sönümü 0,21'den 0,10'a düşer; spiral zaman sabiti ise 126~s'den 116~s'ye değişir. Özvektörler bu karışımı doğrular: boyuna pay fugoid eşleniği için 0,68, spiral kök için 0,48'dir. Fiziksel olarak, dönüşte yatış açısındaki bir değişim kaldırmanın düşey bileşenini değiştirir ve hız değişimiyle birlikte bir tırmanma veya alçalma başlatır; ortaya çıkan hız ve yunuslama değişimleri de dönüşü değiştirir. Bu nedenle ayrık bloklar dönüş uçuşundaki yavaş dinamiği yanlış temsil eder; orada tam model kullanılmalıdır.
-
 \section{Sonuçlar}
 \begin{enumerate}
-\item Ödev~1'de kurulan ve Ödev~2'de trimlenen model, kumandalar sabitken kanatlar düz uçuşta ve $60^\circ$ yatışlı bir tam dönüş boyunca trimi korur: sapmalar $10^{-2}$~m/s ve $10^{-3}$ derecenin altında kalır; dönüş, trim dönüş hızını ve kuramsal dönüş yarıçapını \%0,2 içinde verir.
-\item Benzetimlerdeki küçük artık hareketler dinamik modları gösterir: i koşulunda fugoid ve sönen Hollanda yuvarlanması, ii koşulunda bağlaşık fugoid--spiral salınımı.
-\item Ağırlık merkezi $0,35\bar c$'deyken uçak yunuslamada statik olarak kararsızdır ($C_{m_\alpha}=+0,156$~rad$^{-1}$, nötr nokta yaklaşık $0,31\bar c$); Doğrusal modelde LEF tarifeli olduğunda kısa periyot iki kararlı gerçel köke ayrılır ve fugoid kararsız hâle gelir ($t_2=20,5$~s); bu, benzetimdeki yavaş ıraksamayla örtüşür. Flap sabitken gövdenin $t_2=0,88$~s olan kararsız bir kökü vardır.
-\item Öndeki ağırlık merkezinde bütün türevler olağan işaretlerine sahiptir. Veriler Mach sayısına bağlı olmadığından $C_{D_u}$ ve $C_{m_u}$ düz uçuşta sıfırdır; itki ise sıfırdan farklı bir $X_{T_u}$ ekler.
-\item Dönüş uçuşunda $A$'nın elemanları aerodinamik türevlerin yanında eylemsizlik ve jiroskopik terimler de içerir ve boyuna ile yanal-yönsel yavaş modlar birbirine bağlanır; orada tam model gereklidir.
+\item TP-1538 verileriyle kurulan altı alt sistemli Simulink modeli, rijit cisim denklemlerini, standart atmosferi, 68 tablolu aerodinamik yapıyı, güç gecikmeli motoru, sınırlı eyleyicileri ve LEF tarifesini içerir; Ödev~1'in 15 doğrulama durumunun hepsinde referans değerleri verir. Trim, doğrusallaştırma ve benzetim aynı modeli kullanır.
+\item Model, kumandalar sabitken kanatlar düz uçuşta ve $60^\circ$ yatışlı bir tam dönüş boyunca trimi korur: sapmalar $10^{-2}$~m/s ve $10^{-3}$ derecenin altında kalır; dönüş, trim dönüş hızını ve kuramsal dönüş yarıçapını \%0,2 içinde verir. Benzetimlerdeki küçük artık hareketler dinamik modları gösterir (Problem~1).
+\item Ağırlık merkezi $0,35\bar c$'deyken uçak yunuslamada statik olarak kararsızdır ($C_{m_\alpha}=+0,156$~rad$^{-1}$, nötr nokta yaklaşık $0,31\bar c$). Öndeki ağırlık merkezinde bütün türevler olağan işaretlerine sahiptir. Veriler Mach sayısına bağlı olmadığından $C_{D_u}$ ve $C_{m_u}$ düz uçuşta sıfırdır; itki ise sıfırdan farklı bir $X_{T_u}$ ekler (Problem~2).
+\item LEF tarifesi bir $\alpha$ geri beslemesi gibi davranır: $0,35\bar c$'de flap sabitken $t_2=0,88$~s olan kararsız kökü, $t_2=20,5$~s'lik kararsız bir fugoide dönüştürür. Bu, benzetimdeki yavaş ıraksamayla örtüşür; bu koşul MIL-F-8785C Seviye~3 sınırını da sağlamaz (Problem~3).
+\item Dönüş uçuşunda $A$'nın elemanları aerodinamik türevlerin yanında eylemsizlik ve jiroskopik terimler de içerir ve fugoid ile spiral modları bağlaşır; orada ayrık boyuna ve yanal-yönsel modeller yerine tam model kullanılmalıdır (Problem~2 ve 3).
 \end{enumerate}
 
 \begin{thebibliography}{9}
 \bibitem{tp1538} Nguyen, L. T., Ogburn, M. E., Gilbert, W. P., Kibler, K. S., Brown, P. W., ve Deal, P. L., ``Simulator Study of Stall/Post-Stall Characteristics of a Fighter Airplane With Relaxed Longitudinal Static Stability,'' NASA TP-1538, 1979.
 \bibitem{slj} Stevens, B. L., Lewis, F. L., ve Johnson, E. N., \emph{Aircraft Control and Simulation: Dynamics, Controls Design, and Autonomous Systems}, 3. baskı, John Wiley \& Sons, Hoboken, NJ, 2016.
+\bibitem{lec4} Ertürk, Ş. A., ve Altunkaya, Ç. E., ``Lecture 4 -- The Aircraft Trim Problem,'' UUM 523E ders notları, İstanbul Teknik Üniversitesi, Güz 2026--2027.
 \bibitem{lec5} ``Lecture 5 -- Linearization of Equations of Motion,'' UUM 523E ders notları, İstanbul Teknik Üniversitesi, Güz 2026--2027.
 \bibitem{lec6} ``Lecture 6 -- Longitudinal and Lateral-Directional Dynamics,'' UUM 523E ders notları, İstanbul Teknik Üniversitesi, Güz 2026--2027.
 \bibitem{lec7} ``Lecture 7 -- Flying and Handling Qualities,'' UUM 523E ders notları, İstanbul Teknik Üniversitesi, Güz 2026--2027.
