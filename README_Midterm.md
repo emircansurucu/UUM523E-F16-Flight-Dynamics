@@ -30,7 +30,7 @@ Midterm, HW-1 Simulink modelini ve HW-2 fonksiyonlarını kullanarak üç trim k
 | `figures/MT_*.png` | Benzetim grafikleri (`MT_Sim_i/ii/iii`), dönüşün yer izi (`MT_Track_ii`), özdeğerler (`MT_Eigenvalues`), modelin kök seviyesi (`MT_RootModel`). |
 | `report/` | AIAA formatında rapor (İngilizce, Overleaf'te derlenir): `main.tex`, `tables/`, `figures/`. |
 | `tr_report/` | Raporun Türkçe kopyası, aynı yapıda. |
-| `presentation/` | Sunum, İngilizce ve Türkçe (`.pptx` ve `.pdf`). |
+| `presentation/` | Sunum, İngilizce ve Türkçe (`.pptx` ve `.pdf`): kısa sürüm (`MT_Group2_Presentation_EN/TR`) ve ayrıntılı V2 (`MT_Group2_Presentation_EN_V2/TR_V2`). |
 
 `run_MT` yeni bir model kurmuyor: `F16_6DOF.slx`'i ve HW-2'nin `trim_F16`, `linearize_F16`, `lefTarife`, `f16_eval`, `f16_modelInit` fonksiyonlarını kullanıyor. Benzetimler `sim_F16` ile koşturuluyor.
 
@@ -119,4 +119,4 @@ Rapor önceki ödevlerdeki düzeltmelerin listelenmesini istiyor; ayrıntılar r
 ## Rapor ve sunum
 
 - **Rapor:** Overleaf'te AIAA şablonuyla ("Template for Submissions to AIAA Journals and Conferences", `new-aiaa.cls`) derleniyor. `main.tex` ile `tables/` ve `figures/` klasörleri projenin kök dizinine konmalı. Tablolardaki sayılar `MT_Group2.mat` ve `HW2_Group2.mat`'tan alındı.
-- **Sunum:** 13 ana slayt ve 4 ek sonuç slaytı; 4 konuşmacıya bölünmüş (HW1 modeli, HW2 ve Problem 1, LEF etkisi ve Problem 2, Problem 3 ve sonuçlar).
+- **Sunum:** Kısa sürüm 13 ana slayt ve 4 ek sonuç slaytı. V2 25 slayt: HW1 modeli ve doğrulama, HW2 ve Problem 1, LEF etkisi ve Problem 2, Problem 3 ve sonuçlar; her slaytta ödevde istenen kısım yazılı.
